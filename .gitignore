@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.gcode
+*.bgcode
+# firmware secrets (Wi-Fi, Hue application key) live here, never committed
+firmware/**/secrets.h
+.pio/
+~$*.xlsx
+cad/build/
+cad/step/
