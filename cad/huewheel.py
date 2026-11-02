@@ -37,13 +37,18 @@ TEXT_DEPTH = 0.7
 FONT = "Liberation Sans"
 FONT_PATH = "/usr/share/fonts/liberation/LiberationSans-Bold.ttf"  # falls back to FONT
 
-ENC_SHAFT_D = 6.0      # Bourns PEC11R-4215F-S0024 nominal - verify on the part
+# Encoder: Bourns PEC11R-42xxF, dimensions from the Bourns datasheet (rev 04/26)
+ENC_SHAFT_D = 6.0
 ENC_SHAFT_FLAT = 4.5   # across the D
 ENC_SHAFT_L = 15.0     # from mounting face
-ENC_BUSH_D = 7.0
-ENC_BUSH_L = 7.0
-ENC_BODY = 13.0        # socket width/height (body plus clearance)
-ENC_BODY_L = 7.5
+ENC_FLAT_L = 7.0       # the D-flat covers only this much of the shaft tip
+ENC_BUSH_D = 7.0       # M7 x 0.75
+ENC_BUSH_L = 5.0
+ENC_BODY_W = 14.6      # socket across the side tabs (14.0 part + clearance), along Y
+ENC_BODY_H = 13.8      # socket height (13.4 part + clearance), along Z
+ENC_BODY_L = 6.5       # mounting face to rear of body
+ENC_PIN_L = 3.7        # rear-facing pins, row 7.5 mm below the axle
+ENC_LEDGE = 4.5        # how far the floor runs under the body; pins hang past it
 FIT = 0.15             # radial clearance on the D bore
 CLOCK_OFFSET_DEG = 0.0 # rotate the D bore if numerals sit off-centre at a click
 
@@ -52,7 +57,7 @@ SLOT_PHI = (-58.0, 24.0)  # thumb slot
 DECK_PHI = -15.0       # flat thumb deck: tilt back from vertical
 DECK_D = 19.0          # deck height above axle; WHEEL_R - DECK_D = how proud the wheels stand
 
-MCU_W, MCU_L, MCU_T = 18.0, 22.5, 1.6   # ESP32-C3 SuperMini
+MCU_W, MCU_L, MCU_T = 17.8, 21.0, 1.6   # Seeed XIAO ESP32C3
 SCREW_XY = 36.0
 
 HOURS = [f"{h:02d}" for h in range(24)]                     # 1 click = 1 hour
@@ -161,8 +166,8 @@ def make_shell():
     tongue = bx(-3, 3, -3, 3, AXIS_Z + 3.9, AXIS_Z + 6.5)
     shell += (centre & keep) + tongue
     for s in (-1, 1):
-        x = sorted((s * (MOUNT_X + 1), s * (MOUNT_X + ENC_BODY_L)))
-        shell += bx(*x, -6, 6, AXIS_Z + ENC_BODY / 2 + 0.2, AXIS_Z + SHELL_R) & keep
+        x = sorted((s * (MOUNT_X + 1), s * (MOUNT_X + ENC_BODY_L - 1)))
+        shell += bx(*x, -6, 6, AXIS_Z + ENC_BODY_H / 2 + 0.2, AXIS_Z + SHELL_R) & keep
 
     # thumb slots + reading windows
     for s in (-1, 1):
@@ -210,11 +215,12 @@ def make_plate():
         plate += u_cradle(*x, 10, AXIS_Z + 7, ENC_BUSH_D + 0.3)
         # encoder socket behind the upright: floor + two cheeks
         xs = sorted((s * UPRIGHT[1], s * (UPRIGHT[1] + ENC_BODY_L + 0.5)))
-        h = ENC_BODY / 2
-        plate += bx(*xs, -h - 2.5, h + 2.5, PLATE_T, AXIS_Z - h)
+        xf = sorted((s * UPRIGHT[1], s * (UPRIGHT[1] + ENC_LEDGE)))
+        w, h = ENC_BODY_W / 2, ENC_BODY_H / 2
+        plate += bx(*xf, -w - 2.5, w + 2.5, PLATE_T, AXIS_Z - h)
         for sy in (-1, 1):
-            ys = sorted((sy * h, sy * (h + 2.5)))
-            plate += bx(*xs, *ys, AXIS_Z - h - 0.1, AXIS_Z + h - 1)
+            ys = sorted((sy * w, sy * (w + 2.5)))
+            plate += bx(*xs, *ys, PLATE_T, AXIS_Z + h - 1)
 
     # MCU rails: board slides in from the rear, USB port at the rear wall
     y0, y1 = HALF - WALL - MCU_L - 1.0, HALF - WALL - 1.0
@@ -268,7 +274,7 @@ def make_wheel(inner_sign, labels):
     w += cyl_x(xi, -inner_sign * 0.3, 7.0)
 
     # bushing clearance + D bore
-    pocket_floor = MOUNT_X - ENC_BUSH_L - 0.5
+    pocket_floor = MOUNT_X - ENC_SHAFT_L + ENC_FLAT_L - 0.5  # round part of the shaft stays clear of the D bore
     w -= cyl_x(-inner_sign * pocket_floor, xo + inner_sign * -1, ENC_BUSH_D + 1.5)
     w -= d_bore(*sorted((-inner_sign * BORE_END, -inner_sign * (pocket_floor + 0.5))))
 
@@ -290,15 +296,17 @@ def spin(part, label_index):
 
 def make_dummies():
     """Grey stand-ins for bought parts, for fit checks and renders only."""
-    h = ENC_BODY / 2 - 0.5
+    w, h = 7.0, 6.7
     out = {}
     for name, s in (("enc_l", -1), ("enc_r", 1)):
         xs = sorted((s * MOUNT_X, s * (MOUNT_X + ENC_BODY_L)))
         xb = sorted((s * MOUNT_X, s * (MOUNT_X - ENC_BUSH_L)))
-        xp = sorted((s * (MOUNT_X + ENC_BODY_L), s * (MOUNT_X + ENC_BODY_L + 4)))
-        e = bx(*xs, -h, h, AXIS_Z - h, AXIS_Z + h) + cyl_x(*xb, ENC_BUSH_D)
+        xp = sorted((s * (MOUNT_X + ENC_BODY_L), s * (MOUNT_X + ENC_BODY_L + ENC_PIN_L)))
+        e = bx(*xs, -6.25, 6.25, AXIS_Z - h, AXIS_Z + h) + cyl_x(*xb, ENC_BUSH_D)
+        e += bx(*sorted((s * (MOUNT_X + 2), s * (MOUNT_X + 3.5))), -w, w, AXIS_Z - 1, AXIS_Z + 1)  # side tabs
         for y in (-2.5, 0, 2.5):
-            e += bx(*xp, y - 0.4, y + 0.4, AXIS_Z - 4.4, AXIS_Z - 3.6)
+            e += bx(*xp, y - 0.4, y + 0.4, AXIS_Z - 7.9, AXIS_Z - 7.1)
+            e += bx(*sorted((s * (MOUNT_X + 4.8), s * (MOUNT_X + ENC_BODY_L))), y - 0.4, y + 0.4, AXIS_Z - 7.9, AXIS_Z - 6.7)
         out[name] = e
     y0, y1 = HALF - WALL - MCU_L - 1.0, HALF - WALL - 1.0
     z0 = PLATE_T + 2.5

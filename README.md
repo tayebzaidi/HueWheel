@@ -20,7 +20,7 @@ no firmware yet.
 - Roll a wheel away from you to go later.
 - The clicks come from the encoders. The rim ribs match them one-to-one, so each rib is one click.
 - A slide switch on the right side turns the alarm on or off.
-- An ESP32-C3 sends the time to the Hue Bridge over Wi-Fi once the wheels stop moving.
+- A Seeed XIAO ESP32C3 sends the time to the Hue Bridge over Wi-Fi once the wheels stop moving.
 
 ## Dimensions
 
@@ -31,16 +31,18 @@ proud of the deck. All key dimensions are parameters at the top of
 ## Parts
 
 The full list, with a Have? column that updates the total, is in
-[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). Buying everything comes to about **$26.75**
-(estimated prices, including $6 shipping), or less for anything you already own.
+[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). With the hardware already on hand, about **$23.50** is left to buy
+(estimated prices, including $7 shipping and a $5 USB-C charger that may already be owned).
+The encoders, board and switch all come from one DigiKey order.
 
-Print settings and slicer estimates are on the workbook's Printed Parts tab: about 120 g and
+Print settings and slicer estimates are on the workbook's Printed Parts tab: about 119 g and
 10 hours on the default PrusaSlicer profile. The shell needs supports from the build plate.
 
 ## Assembly
 
-1. Slide the ESP32-C3 into the plate rails from the rear, USB port facing out. Keep solder
+1. Slide the XIAO into the plate rails from the rear, USB port facing out. Keep solder
    joints low on the board edges, because the rails grip there.
+   Stick its antenna inside the rear wall, away from the wires.
 2. Wire the encoders and slide switch (pin map to be defined with the firmware).
 3. Press each wheel onto its encoder shaft.
 4. Lower each wheel + encoder pair into the cradles: the bushing goes in the outer U-slot,
@@ -50,16 +52,19 @@ Print settings and slicer estimates are on the workbook's Printed Parts tab: abo
 
 ## Known risks to check on first print
 
-- **Encoder dimensions are nominal.** Measure the real part before printing, especially the
-  D-shaft, bushing and body. A 24-detent encoder is required as modelled.
+- **Print one wheel first.** Encoder dimensions come from the Bourns datasheet, but the fit
+  on a real part is untested. A 24-detent encoder is required as modelled.
+- **Click strength.** The rated detent torque is low (30-90 gf-cm), which is only about
+  14-41 gf at the rim of a 44 mm wheel. If the clicks feel faint, add a printed spring that
+  rides in the existing rim ribs.
 - **Numeral alignment.** The angle between the D-flat and the detents is unknown, so numbers
   may sit off-centre at a click. Measure it, then set `CLOCK_OFFSET_DEG` and reprint the wheels.
 - **Wheel position is relative.** Encoders don't report absolute position. The firmware will
   save the position and needs a re-sync gesture for when a wheel is turned while unpowered.
   Changing the alarm in the Hue app won't move the wheels.
-- **Hue wake-up API.** The Hue app stores wake-ups as `behavior_instance` resources, but their
-  schema is not publicly documented. Editing one needs testing against a real bridge. The
-  fallback is a separate schedule owned by this device, not the app's wake-up.
+- **Hue wake-up API.** The plan is to edit the app's existing Wake Up automation. It is stored
+  as a `behavior_instance` resource, whose schema is not publicly documented, so this needs
+  testing against a real bridge. The fallback is a separate schedule owned by this device.
 
 ## Rebuilding the CAD
 
