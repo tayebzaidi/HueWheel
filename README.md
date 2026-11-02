@@ -31,8 +31,8 @@ proud of the deck. All key dimensions are parameters at the top of
 ## Parts
 
 The full list, with a Have? column that updates the total, is in
-[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). With the hardware already on hand, about **$24.70** is left to buy
-(estimated prices, including $7 shipping and $6 for a charger and cable you may already own).
+[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). With the hardware already on hand, about **$18.70** is left to buy
+(estimated prices, including $7 shipping). A USB charger and data cable are also needed; they are on hold in the BOM at about $6.
 Everything comes from one DigiKey order.
 
 Print settings and slicer estimates are on the workbook's Printed Parts tab: about 119 g and
