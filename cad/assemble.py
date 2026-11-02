@@ -29,7 +29,7 @@ def main():
 
     bad = 0
     for (na, a), (nb, b) in combinations(parts.items(), 2):
-        if {na, nb} <= {"enc_l", "enc_r", "mcu", "switch", "screws"}:
+        if {na, nb} <= {"enc_l", "enc_r", "mcu", "switch", "screws", "nuts"}:
             continue
         v = overlap(a, b)
         if v > 0.01:
@@ -43,9 +43,18 @@ def main():
         print(f"switch slider at {off:+.1f} mm vs shell: {v:.2f} mm3")
         bad += v > 0.01
 
+    # each nut must slide all the way in from the mouth of its slot
+    worst = max(overlap(hw.nut_set(d), parts["shell"]) for d in (0.5, 1, 2, 3, 4, 5, 6, 8))
+    print(f"nut slide-in: worst clash {worst:.2f} mm3")
+    bad += worst > 0.01
+    screw_top = hw.CBORE_DEPTH + hw.SCREW_L
+    print(f"screw tip {screw_top - (hw.NUT_Z + hw.NUT_H):.1f} mm past nut, "
+          f"{hw.BORE_TOP - screw_top:.1f} mm short of bore end")
+    bad += screw_top < hw.NUT_Z + hw.NUT_H or screw_top > hw.BORE_TOP
+
     # assembly paths, largest clash along each path
     pairs = {"wheel+encoder drop-in": (["wheel_hours", "wheel_minutes", "enc_l", "enc_r"], ["plate", "mcu"]),
-             "shell drop-on": (["shell", "switch"], ["plate", "mcu", "enc_l", "enc_r", "wheel_hours", "wheel_minutes"])}
+             "shell drop-on": (["shell", "switch", "nuts"], ["plate", "mcu", "enc_l", "enc_r", "wheel_hours", "wheel_minutes"])}
     for label, (moving, fixed) in pairs.items():
         worst = 0.0
         for dz in (1, 2, 4, 8, 12, 16, 24, 32, 45, 60):

@@ -47,8 +47,9 @@ Print settings and slicer estimates are on the workbook's Printed Parts tab: abo
 3. Press each wheel onto its encoder shaft.
 4. Lower each wheel + encoder pair into the cradles: the bushing goes in the outer U-slot,
    the stub boss in the centre one, and the encoder body in its socket.
-5. Fit the shell. Internal ribs stop the wheels and encoders lifting out.
-6. Fasten from below with four M3 x 8 button head screws, then add the feet.
+5. Slide an M3 nut into the slot in each corner block from the inside, flats against the slot walls, with a small dab of hot glue at the slot mouth so it can't fall out. Keep glue out of the screw hole.
+6. Fit the shell. Internal ribs stop the wheels and encoders lifting out.
+7. Fasten from below with four M3 x 8 button head screws, then add the feet.
 
 ## Known risks to check on first print
 

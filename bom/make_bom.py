@@ -41,8 +41,8 @@ ROWS = [
      "On hold, left out of the total. A-to-C avoids any question of USB-C charger negotiation. Must carry data as well as power, so it can also flash the firmware."),
     ("Hookup wire", "26-30 AWG, about 1 m total", 1, 2.00, "Y", "Y",
      "Already owned", ""),
-    ("M3 x 8 button head screws (4 used)", "From the Mywish 1290-piece M2-M5 304 stainless button head kit. Thread into 2.6 mm pilot holes in the shell", 1, 17.99, "Y", "Y",
-     "Amazon listing price, ordered", "Whole kit cost shown; counted as shop stock, so not in Still to buy. Use the 8 mm screws: anything over 10 mm bottoms out before the head seats."),
+    ("M3 x 8 button head screws + M3 nuts (4 of each)", "From the Mywish 1290-piece M2-M5 304 stainless button head kit. Nuts slide into slots in the shell's corner blocks", 1, 17.99, "Y", "Y",
+     "Amazon listing price, ordered", "Whole kit cost shown; counted as shop stock, so not in Still to buy. Use the 8 mm screws: 12 mm and longer bottom out before the head seats."),
     ("PLA filament", "About 120 g total, see Printed Parts tab", 120, 0.02, "Y", "Y",
      "Already owned", "Bambu X1 Carbon. Colours to be decided later."),
     ("Hot glue", "Slide switch mount, and four dots as feet", 1, 0, "Y", "Y",
@@ -137,7 +137,7 @@ for c, h in enumerate(["Part", "STL", "Qty", "Weight (g)", "Time (h)", "Supports
     x.fill = HDR
     x.border = BOX
 P = [("Base plate", "cad/stl/plate.stl", 1, 27.9, 2.97, "None", "Flat as exported; cradles point up"),
-     ("Shell", "cad/stl/shell.stl", 1, 71.4, 5.39, "Build plate only (figures include them)", "Open side down on the bed, as exported"),
+     ("Shell", "cad/stl/shell.stl", 1, 70.9, 5.28, "Build plate only (figures include them)", "Open side down on the bed, as exported"),
      ("Hours wheel", "cad/stl/wheel_hours.stl", 1, 9.3, 0.81, "None", "On its side, stub boss up, as exported"),
      ("Minutes wheel", "cad/stl/wheel_minutes.stl", 1, 9.3, 0.80, "None", "On its side, stub boss up, as exported")]
 for i, r in enumerate(P):

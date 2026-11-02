@@ -11,7 +11,7 @@ from pathlib import Path
 
 from build123d import (
     Align, Axis, Box, BuildLine, BuildSketch, Circle, Cylinder, FontStyle,
-    Line, Plane, Pos, Rectangle, RectangleRounded, Rot, Sketch, Text,
+    Line, Plane, Pos, Rectangle, RectangleRounded, RegularPolygon, Rot, Sketch, Text,
     ThreePointArc, chamfer, export_step, export_stl, extrude, fillet, make_face,
 )
 
@@ -62,6 +62,12 @@ SCREW_XY = 36.0
 SCREW_L = 8.0          # M3 x 8 button head, Mywish kit
 SCREW_HEAD_D, SCREW_HEAD_H = 5.7, 1.65  # ISO 7380 nominal
 CBORE_D, CBORE_DEPTH = 6.2, 2.4
+NUT_AF, NUT_H = 5.5, 2.4       # ISO 4032 M3 nut, nominal
+NUT_FIT = 0.2          # slot clearance across the flats
+NUT_SLOT_H = 2.6
+NUT_Z = PLATE_T + 2.7  # underside of the nut: leaves a 2.7 mm shelf of shell below it
+BORE_D = 3.4           # screw clearance through the boss
+BORE_TOP = PLATE_T + 8.5
 SW_Y, SW_Z = -15.0, 10.25  # E-Switch EG1201A centre on the right wall
 
 HOURS = [f"{h:02d}" for h in range(24)]                     # 1 click = 1 hour
@@ -74,6 +80,11 @@ UPRIGHT = (WHEEL_OUT + 0.5, WHEEL_OUT + 3.5)
 MOUNT_X = UPRIGHT[1]                  # encoder mounting face
 BORE_END = MOUNT_X - ENC_SHAFT_L - 0.5
 PITCH = 360.0 / N_POS
+
+
+def nut_hex(across_flats, height):
+    """Hexagonal prism with flats facing +/-Y, base at z=0."""
+    return extrude(RegularPolygon(across_flats / 3 ** 0.5, 6), amount=height)
 
 
 def bx(x0, x1, y0, y1, z0, z1):
@@ -192,10 +203,15 @@ def make_shell():
     shell -= bx(-6.5, 6.5, HALF - WALL - 1, HALF + 1, PLATE_T - 1, PLATE_T + 10)
     shell -= bx(HALF - WALL - 1, HALF + 1, SW_Y - 4.5, SW_Y + 4.5, SW_Z - 2.25, SW_Z + 2.25)
 
-    # pilot holes for M3 self-tapping into the bosses
+    # captive M3 nuts: each slides into its boss from inside the shell. The screw
+    # pulls the nut down onto the shelf below it, clamping the shell to the plate.
     for sx in (-1, 1):
         for sy in (-1, 1):
-            shell -= Pos(sx * SCREW_XY, sy * SCREW_XY, PLATE_T + 5) * Cylinder(1.3, 10.1)
+            x, y = sx * SCREW_XY, sy * SCREW_XY
+            shell -= Pos(x, y, (PLATE_T - 1 + BORE_TOP) / 2) * Cylinder(BORE_D / 2, BORE_TOP - PLATE_T + 1)
+            shell -= Pos(x, y, NUT_Z) * nut_hex(NUT_AF + NUT_FIT, NUT_SLOT_H)
+            mouth = sorted((x, sx * (SCREW_XY - 6)))
+            shell -= bx(*mouth, y - (NUT_AF + NUT_FIT) / 2, y + (NUT_AF + NUT_FIT) / 2, NUT_Z, NUT_Z + NUT_SLOT_H)
     return shell
 
 
@@ -324,12 +340,22 @@ def make_dummies():
     for sx in (-1, 1):
         for sy in (-1, 1):
             p = Pos(sx * SCREW_XY, sy * SCREW_XY, 0)
-            # 2.5 mm core stands in for the thread, which cuts into the 2.6 mm pilot
             one = p * Pos(0, 0, head_top - SCREW_HEAD_H / 2) * Cylinder(SCREW_HEAD_D / 2, SCREW_HEAD_H)
-            one += p * Pos(0, 0, head_top + SCREW_L / 2) * Cylinder(1.25, SCREW_L)
+            one += p * Pos(0, 0, head_top + SCREW_L / 2) * Cylinder(1.5, SCREW_L)
             screws = one if screws is None else screws + one
     out["screws"] = screws
+    out["nuts"] = nut_set(0.0)
     return out
+
+
+def nut_set(inboard):
+    """The four nuts, each slid `inboard` mm back along its slot."""
+    nuts = None
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            one = Pos(sx * (SCREW_XY - inboard), sy * SCREW_XY, NUT_Z + 0.02) * nut_hex(NUT_AF, NUT_H)
+            nuts = one if nuts is None else nuts + one
+    return nuts
 
 
 def switch_actuator(offset):
