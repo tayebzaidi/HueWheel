@@ -31,7 +31,7 @@ proud of the deck. All key dimensions are parameters at the top of
 ## Parts
 
 The full list, with a Have? column that updates the total, is in
-[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). With the hardware already on hand, about **$23.50** is left to buy
+[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). With the hardware already on hand, about **$23.70** is left to buy
 (estimated prices, including $7 shipping and a $5 USB-C charger that may already be owned).
 The encoders, board and switch all come from one DigiKey order.
 
