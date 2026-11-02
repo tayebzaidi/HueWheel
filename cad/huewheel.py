@@ -32,7 +32,7 @@ TOP_HALF = 36.0        # shell half-width at the top of the hump
 
 GRIP_W = 3.0           # ribbed band on each edge of the rim (the "notching")
 GRIP_CUT_R = 1.4
-TEXT_SIZE = 5.5
+TEXT_SIZE = 6.5
 TEXT_DEPTH = 0.7
 FONT = "Liberation Sans"
 FONT_PATH = "/usr/share/fonts/liberation/LiberationSans-Bold.ttf"  # falls back to FONT
@@ -52,7 +52,7 @@ ENC_LEDGE = 4.0        # how far the floor runs under the body; pins hang past i
 FIT = 0.15             # radial clearance on the D bore
 CLOCK_OFFSET_DEG = 0.0 # rotate the D bore if numerals sit off-centre at a click
 
-WINDOW_PHI = 44.0      # reading window, degrees forward of vertical
+WINDOW_PHI = 50.0      # reading window, degrees forward of vertical
 SLOT_PHI = (-58.0, 24.0)  # thumb slot
 DECK_PHI = -15.0       # flat thumb deck: tilt back from vertical
 DECK_D = 19.0          # deck height above axle; WHEEL_R - DECK_D = how proud the wheels stand
@@ -68,6 +68,10 @@ NUT_SLOT_H = 2.6
 NUT_Z = PLATE_T + 2.7  # underside of the nut: leaves a 2.7 mm shelf of shell below it
 BORE_D = 3.4           # screw clearance through the boss
 BORE_TOP = PLATE_T + 8.5
+LED_D = 3.0            # 3 mm through-hole LED; set to 5.0 for 5 mm LEDs
+LED_LEN = 5.3          # base flange to dome tip
+LED_TIP_BACK = 12.0    # dome tip's distance back from where the slope meets the hump
+LED_HOLDER_L = 4.5
 SW_Y, SW_Z = -15.0, 10.25  # E-Switch EG1201A centre on the right wall
 
 HOURS = [f"{h:02d}" for h in range(24)]                     # 1 click = 1 hour
@@ -135,6 +139,29 @@ def side_taper(half, z_bottom, z_top):
     return s.sketch
 
 
+def led_axis():
+    """Point and unit direction (y, z) of the LED beam, along the inside of the front slope."""
+    half, r = HALF - WALL, SHELL_R - WALL
+    dy, dz = half, AXIS_Z - PLINTH_TOP
+    d = hypot(dy, dz)
+    t = radians(degrees(atan2(dy, -dz)) - 90 + degrees(asin(r / d)))
+    p = (-r * sin(t), AXIS_Z + r * cos(t))
+    uy, uz = p[0] + half, p[1] - PLINTH_TOP
+    n = hypot(uy, uz)
+    uy, uz = uy / n, uz / n
+    a = SHELL_R - 1.2 - (LED_D + 0.2) / 2  # keeps 1.2 mm of wall outside the bore
+    foot = (-a * sin(t), AXIS_Z + a * cos(t))
+    tip = (foot[0] - LED_TIP_BACK * uy, foot[1] - LED_TIP_BACK * uz)
+    return tip, (uy, uz)
+
+
+def led_cyl(x, d, s0, s1):
+    """Cylinder on the LED axis, s measured along the beam from the dome tip."""
+    tip, u = led_axis()
+    origin = (x, tip[0] + s0 * u[0], tip[1] + s0 * u[1])
+    return Plane(origin=origin, x_dir=(1, 0, 0), z_dir=(0, u[0], u[1])) * Pos(0, 0, (s1 - s0) / 2) * Cylinder(d / 2, s1 - s0)
+
+
 def body_solid(half, r, z_bottom):
     z_top = AXIS_Z + SHELL_R + 2
     a = extrude(tent_profile(half, r, z_bottom, PLINTH_TOP), amount=HALF + 1, both=True)
@@ -184,6 +211,13 @@ def make_shell():
         x = sorted((s * (MOUNT_X + 1), s * (MOUNT_X + ENC_BODY_L - 1)))
         shell += bx(*x, -6, 6, AXIS_Z + ENC_BODY_H / 2 + 0.2, AXIS_Z + SHELL_R) & keep
 
+    # LED holders on the inside of the front slope, one aimed up at each window
+    for s in (-1, 1):
+        xc = s * (WHEEL_IN + WHEEL_OUT) / 2
+        shell += led_cyl(xc, LED_D + 2.6, -LED_LEN, -LED_LEN + LED_HOLDER_L) & outer
+        shell -= led_cyl(xc, LED_D + 0.2, -LED_LEN - 2, 1)
+        shell -= led_cyl(xc, LED_D + 1.1, -LED_LEN - 4, -LED_LEN)  # relief for the LED's base flange
+
     # thumb slots + reading windows
     for s in (-1, 1):
         x = sorted((s * (WHEEL_IN - 0.25), s * (WHEEL_OUT + 0.25)))
@@ -192,6 +226,13 @@ def make_shell():
         xc = s * (WHEEL_IN + WHEEL_OUT) / 2
         hw = (WHEEL_W - 2 * GRIP_W) / 2 + 0.2
         shell -= sector(WINDOW_PHI - PITCH / 2, WINDOW_PHI + PITCH / 2, xc - hw, xc + hw)
+        # 45 degree flare so the numbers stay visible from low and side angles
+        r0 = (SHELL_R - WALL) * cos(radians(PITCH / 2))
+        y0, z0 = rim(WINDOW_PHI, r0)
+        n = (0, -sin(radians(WINDOW_PHI)), cos(radians(WINDOW_PHI)))
+        face = Plane(origin=(xc, y0, z0), x_dir=(1, 0, 0), z_dir=n)
+        half_h = (SHELL_R - WALL) * sin(radians(PITCH / 2))
+        shell -= extrude(face * Rectangle(2 * hw, 2 * half_h), amount=4.0, taper=-45)
 
     # colon between HH and MM
     for d in (-3.2, 3.2):
@@ -345,6 +386,14 @@ def make_dummies():
             screws = one if screws is None else screws + one
     out["screws"] = screws
     out["nuts"] = nut_set(0.0)
+    leds = None
+    for s in (-1, 1):
+        xc = s * (WHEEL_IN + WHEEL_OUT) / 2
+        one = led_cyl(xc, LED_D, -LED_LEN, 0) + led_cyl(xc, LED_D + 0.8, -LED_LEN - 1, -LED_LEN)
+        for dx in (-1.27, 1.27):
+            one += led_cyl(xc + dx, 0.5, -LED_LEN - 12, -LED_LEN - 1)
+        leds = one if leds is None else leds + one
+    out["leds"] = leds
     return out
 
 

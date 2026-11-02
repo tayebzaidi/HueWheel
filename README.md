@@ -20,6 +20,7 @@ no firmware yet.
 - Roll a wheel away from you to go later.
 - The clicks come from the encoders. The rim ribs match them one-to-one, so each rib is one click.
 - A slide switch on the right side turns the alarm on or off.
+- Two small LEDs inside the shell light the windows for a few seconds when a wheel turns.
 - A Seeed XIAO ESP32C3 sends the time to the Hue Bridge over Wi-Fi once the wheels stop moving.
 
 ## Dimensions
@@ -44,6 +45,8 @@ Print settings and slicer estimates are on the workbook's Printed Parts tab: abo
    rear, and hold it with a dab of hot glue. Keep glue off the USB port. Connect the included
    antenna and stick it inside the rear wall, away from the wires.
 2. Hot-glue the slide switch into the side slot, then wire it and the encoders (pin map to be defined with the firmware).
+   Push an LED up into each holder inside the front slope and fix it with a dab of hot glue.
+   Wire both LEDs to one GPIO pin, each through its own 220-470 ohm resistor.
 3. Press each wheel onto its encoder shaft.
 4. Lower each wheel + encoder pair into the cradles: the bushing goes in the outer U-slot,
    the stub boss in the centre one, and the encoder body in its socket.
@@ -58,6 +61,9 @@ Print settings and slicer estimates are on the workbook's Printed Parts tab: abo
 - **Click strength.** The rated detent torque is low (30-90 gf-cm), which is only about
   14-41 gf at the rim of a 44 mm wheel. If the clicks feel faint, add a printed spring that
   rides in the existing rim ribs.
+- **Window light.** Direct light only reaches the lower part of each window; the rest relies on
+  bounce off the shell interior. Bench-test an LED in a printed shell before gluing it in.
+  A light filament will bounce more light but lets the LEDs glow through the wall.
 - **Numeral alignment.** The angle between the D-flat and the detents is unknown, so numbers
   may sit off-centre at a click. Measure it, then set `CLOCK_OFFSET_DEG` and reprint the wheels.
 - **Wheel position is relative.** Encoders don't report absolute position. The firmware will

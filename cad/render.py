@@ -9,10 +9,10 @@ ROOT = Path(__file__).parent
 OUT = ROOT.parent / "docs" / "renders"
 COL = {"plate": "#3c4148", "shell": "#d9d5cc", "wheel_hours": "#e0803a",
        "wheel_minutes": "#e0803a", "enc_l": "#8d939b", "enc_r": "#8d939b", "mcu": "#2f6d4f",
-       "switch": "#c23b3b", "screws": "#c9ccd1", "nuts": "#e8c547"}
+       "switch": "#c23b3b", "screws": "#c9ccd1", "nuts": "#e8c547", "leds": "#f2f2f2"}
 EXPLODE = {"plate": (0, 0, 0), "shell": (0, 0, 90), "wheel_hours": (-8, 0, 34),
            "wheel_minutes": (8, 0, 34), "enc_l": (-62, 0, 34), "enc_r": (62, 0, 34), "mcu": (0, 42, 0),
-           "switch": (48, 0, 90), "screws": (0, 0, -35), "nuts": (0, 0, 90)}
+           "switch": (48, 0, 90), "screws": (0, 0, -35), "nuts": (0, 0, 90), "leds": (0, 0, 90)}
 meshes = {n: pv.read(ROOT / "build" / f"{n}.stl") for n in COL}
 
 
@@ -57,5 +57,8 @@ shot("section_x0_usb", ALL, view(90, 0, 150), clip=((1, 0, 0), (0, 0, 0)))
 shot("section_switch", ALL, view(0, 0, 90, (30, 0, 22)), clip=((0, -1, 0), (0, -15, 0)), size=(1200, 900))
 shot("section_nut", ["plate", "shell", "screws", "nuts"], view(0, 0, 70, (32, 0, 14)), clip=((0, -1, 0), (0, 36, 0)), size=(1200, 900))
 shot("nut_slot", ["shell"], view(-20, -55, 90, (24, 30, 12)), size=(1200, 900))
+for el in (10, 25, 46):
+    shot(f"eye_level_{el}deg", ALL, view(0, el, 300, (0, -16, 46)), size=(1100, 520), zoom=2.6)
+shot("section_led", ALL, view(90, 0, 110, (10.5, -14, 36)), clip=((1, 0, 0), (10.5, 0, 0)), size=(1200, 900))
 shot("section_x10", ALL, view(90, 0, 150), clip=((1, 0, 0), (10.5, 0, 0)))
 shot("section_y0", ALL, view(0, 0, 150), clip=((0, -1, 0), (0, 0, 0)))

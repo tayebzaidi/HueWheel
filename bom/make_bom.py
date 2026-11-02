@@ -49,10 +49,12 @@ ROWS = [
      "Already owned", "Replaces rubber feet."),
     ("Ballast", "Steel washers, nuts or coins glued inside the front of the base", 1, 0, "", "N",
      "Scrap", "Only if it slides when you roll a wheel."),
-    ("Numeral contrast", "Paint pen or wax crayon rubbed into the engraved numerals", 1, 0, "", "N",
-     "Scrap", "Not needed if the numerals are printed in a second colour."),
-    ("Night-light LED + resistor", "3 mm white LED + about 220 ohm, lights the window while setting", 1, 0.20, "", "N",
-     "Estimate, not checked against a listing", "Only if you set the alarm in the dark. Not yet in the CAD model."),
+    ("Numeral contrast", "Fine marker or paint pen in the engraved numerals", 1, 0, "Y", "Y",
+     "Already owned", "Use black or another dark colour: a red numeral disappears under a red LED."),
+    ("LEDs (window light)", "3 mm through-hole, diffused if available; red or amber recommended. 5 mm also works: set LED_D in cad/huewheel.py", 2, 0.05, "Y", "Y",
+     "Already owned", "One per window, in holders inside the front slope."),
+    ("Resistors for the LEDs", "220-470 ohm, 1/4 W through-hole, one per LED, from your kit", 2, 0.02, "Y", "Y",
+     "Already owned", "Solder in line with each LED, then cover with tape or heat shrink."),
 ]
 
 wb = Workbook()
@@ -137,9 +139,9 @@ for c, h in enumerate(["Part", "STL", "Qty", "Weight (g)", "Time (h)", "Supports
     x.fill = HDR
     x.border = BOX
 P = [("Base plate", "cad/stl/plate.stl", 1, 27.9, 2.97, "None", "Flat as exported; cradles point up"),
-     ("Shell", "cad/stl/shell.stl", 1, 70.9, 5.28, "Build plate only (figures include them)", "Open side down on the bed, as exported"),
-     ("Hours wheel", "cad/stl/wheel_hours.stl", 1, 9.3, 0.81, "None", "On its side, stub boss up, as exported"),
-     ("Minutes wheel", "cad/stl/wheel_minutes.stl", 1, 9.3, 0.80, "None", "On its side, stub boss up, as exported")]
+     ("Shell", "cad/stl/shell.stl", 1, 71.5, 5.42, "Build plate only (figures include them)", "Open side down on the bed, as exported"),
+     ("Hours wheel", "cad/stl/wheel_hours.stl", 1, 9.3, 0.82, "None", "On its side, stub boss up, as exported"),
+     ("Minutes wheel", "cad/stl/wheel_minutes.stl", 1, 9.4, 0.83, "None", "On its side, stub boss up, as exported")]
 for i, r in enumerate(P):
     for c, v in enumerate(r, 1):
         x = p.cell(5 + i, c, v)

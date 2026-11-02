@@ -29,7 +29,7 @@ def main():
 
     bad = 0
     for (na, a), (nb, b) in combinations(parts.items(), 2):
-        if {na, nb} <= {"enc_l", "enc_r", "mcu", "switch", "screws", "nuts"}:
+        if {na, nb} <= {"enc_l", "enc_r", "mcu", "switch", "screws", "nuts", "leds"}:
             continue
         v = overlap(a, b)
         if v > 0.01:
@@ -54,7 +54,7 @@ def main():
 
     # assembly paths, largest clash along each path
     pairs = {"wheel+encoder drop-in": (["wheel_hours", "wheel_minutes", "enc_l", "enc_r"], ["plate", "mcu"]),
-             "shell drop-on": (["shell", "switch", "nuts"], ["plate", "mcu", "enc_l", "enc_r", "wheel_hours", "wheel_minutes"])}
+             "shell drop-on": (["shell", "switch", "nuts", "leds"], ["plate", "mcu", "enc_l", "enc_r", "wheel_hours", "wheel_minutes"])}
     for label, (moving, fixed) in pairs.items():
         worst = 0.0
         for dz in (1, 2, 4, 8, 12, 16, 24, 32, 45, 60):
