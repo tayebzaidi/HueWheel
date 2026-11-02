@@ -136,8 +136,8 @@ for c, h in enumerate(["Part", "STL", "Qty", "Weight (g)", "Time (h)", "Supports
     x.font = Font(name=F, bold=True, color="FFFFFF")
     x.fill = HDR
     x.border = BOX
-P = [("Base plate", "cad/stl/plate.stl", 1, 28.5, 3.01, "None", "Flat as exported; cradles point up"),
-     ("Shell", "cad/stl/shell.stl", 1, 71.5, 5.40, "Build plate only (figures include them)", "Open side down on the bed, as exported"),
+P = [("Base plate", "cad/stl/plate.stl", 1, 27.9, 2.97, "None", "Flat as exported; cradles point up"),
+     ("Shell", "cad/stl/shell.stl", 1, 71.4, 5.39, "Build plate only (figures include them)", "Open side down on the bed, as exported"),
      ("Hours wheel", "cad/stl/wheel_hours.stl", 1, 9.3, 0.81, "None", "On its side, stub boss up, as exported"),
      ("Minutes wheel", "cad/stl/wheel_minutes.stl", 1, 9.3, 0.80, "None", "On its side, stub boss up, as exported")]
 for i, r in enumerate(P):

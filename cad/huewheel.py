@@ -48,7 +48,7 @@ ENC_BODY_W = 14.6      # socket across the side tabs (14.0 part + clearance), al
 ENC_BODY_H = 13.8      # socket height (13.4 part + clearance), along Z
 ENC_BODY_L = 6.5       # mounting face to rear of body
 ENC_PIN_L = 3.7        # rear-facing pins, row 7.5 mm below the axle
-ENC_LEDGE = 4.5        # how far the floor runs under the body; pins hang past it
+ENC_LEDGE = 4.0        # how far the floor runs under the body; pins hang past it
 FIT = 0.15             # radial clearance on the D bore
 CLOCK_OFFSET_DEG = 0.0 # rotate the D bore if numerals sit off-centre at a click
 
@@ -57,8 +57,12 @@ SLOT_PHI = (-58.0, 24.0)  # thumb slot
 DECK_PHI = -15.0       # flat thumb deck: tilt back from vertical
 DECK_D = 19.0          # deck height above axle; WHEEL_R - DECK_D = how proud the wheels stand
 
-MCU_W, MCU_L, MCU_T = 17.8, 21.0, 1.6   # Seeed XIAO ESP32C3
+MCU_W, MCU_L, MCU_T = 17.8, 21.0, 1.3   # Seeed XIAO ESP32C3 (thickness from a user report, not Seeed)
 SCREW_XY = 36.0
+SCREW_L = 8.0          # M3 x 8 button head, Mywish kit
+SCREW_HEAD_D, SCREW_HEAD_H = 5.7, 1.65  # ISO 7380 nominal
+CBORE_D, CBORE_DEPTH = 6.2, 2.4
+SW_Y, SW_Z = -15.0, 10.25  # E-Switch EG1201A centre on the right wall
 
 HOURS = [f"{h:02d}" for h in range(24)]                     # 1 click = 1 hour
 MINUTES = [f"{m:02d}" for m in range(0, 60, 5)] * 2         # 1 click = 5 min
@@ -185,8 +189,8 @@ def make_shell():
         shell -= n * Pos(0, 0, -0.5) * Cylinder(0.9, 2.0)
 
     # USB-C notch (rear) and alarm on/off slide switch (right side)
-    shell -= bx(-6.5, 6.5, HALF - WALL - 1, HALF + 1, PLATE_T - 1, PLATE_T + 9)
-    shell -= bx(HALF - WALL - 1, HALF + 1, -19.5, -10.5, 8, 12.5)
+    shell -= bx(-6.5, 6.5, HALF - WALL - 1, HALF + 1, PLATE_T - 1, PLATE_T + 10)
+    shell -= bx(HALF - WALL - 1, HALF + 1, SW_Y - 4.5, SW_Y + 4.5, SW_Z - 2.25, SW_Z + 2.25)
 
     # pilot holes for M3 self-tapping into the bosses
     for sx in (-1, 1):
@@ -201,7 +205,7 @@ def make_plate():
         for sy in (-1, 1):
             x, y = sx * SCREW_XY, sy * SCREW_XY
             plate -= Pos(x, y, PLATE_T / 2) * Cylinder(1.7, PLATE_T + 1)
-            plate -= Pos(x, y, 1.2) * Cylinder(3.1, 2.41)  # 2.29 mm pan head sits flush
+            plate -= Pos(x, y, CBORE_DEPTH / 2) * Cylinder(CBORE_D / 2, CBORE_DEPTH + 0.01)
             plate -= Pos(sx * 28, sy * 28, 0.3) * Cylinder(4.5, 0.61)  # feet
 
     def u_cradle(x0, x1, half_y, top, slot):
@@ -222,17 +226,15 @@ def make_plate():
             ys = sorted((sy * w, sy * (w + 2.5)))
             plate += bx(*xs, *ys, PLATE_T, AXIS_Z + h - 1)
 
-    # MCU rails: board slides in from the rear, USB port at the rear wall
+    # MCU seats: four corner posts, so the soldered long edges stay clear.
+    # The board drops in from above and is held with a dab of hot glue.
     y0, y1 = HALF - WALL - MCU_L - 1.0, HALF - WALL - 1.0
     z0 = PLATE_T + 2.5
-    plate += bx(-MCU_W / 2 - 0.15, MCU_W / 2 + 0.15, y0 - 2, y0 - 0.2, PLATE_T, z0 + 3)  # stop
+    plate += bx(-MCU_W / 2 - 0.3, MCU_W / 2 + 0.3, y0 - 2, y0 - 0.2, PLATE_T, z0 + 3)  # stop
     for s in (-1, 1):
-        x = sorted((s * (MCU_W / 2 - 0.8), s * (MCU_W / 2 + 2.2)))
-        rail = bx(*x, y0, y1, PLATE_T, z0 + MCU_T + 1.4)
-        slot = sorted((s * (MCU_W / 2 - 3), s * (MCU_W / 2 + 0.15)))
-        rail -= bx(*slot, y0 - 1, y1 + 1, z0, z0 + MCU_T + 0.2)
-        rail -= bx(*sorted((s * (MCU_W / 2 - 3), s * (MCU_W / 2 - 0.45))), y0 - 1, y1 + 1, z0, z0 + 5)
-        plate += rail
+        for ys in ((y0, y0 + 2), (y1 - 2, y1)):
+            plate += bx(*sorted((s * (MCU_W / 2 - 2), s * (MCU_W / 2 + 0.3))), *ys, PLATE_T, z0)
+            plate += bx(*sorted((s * (MCU_W / 2 + 0.3), s * (MCU_W / 2 + 1.8))), *ys, PLATE_T, z0 + MCU_T + 0.5)
     return plate
 
 
@@ -311,7 +313,30 @@ def make_dummies():
     y0, y1 = HALF - WALL - MCU_L - 1.0, HALF - WALL - 1.0
     z0 = PLATE_T + 2.5
     out["mcu"] = bx(-MCU_W / 2, MCU_W / 2, y0, y1, z0, z0 + MCU_T) + bx(-4.5, 4.5, y1 - 7, y1 + 0.8, z0 + MCU_T, z0 + MCU_T + 3.2)
+    wi = HALF - WALL
+    sw = bx(wi - 5, wi, SW_Y - 5.55, SW_Y + 5.55, SW_Z - 2.9, SW_Z + 2.9)     # body
+    sw += bx(wi - 0.6, wi, SW_Y - 9.5, SW_Y + 9.5, SW_Z - 2.9, SW_Z + 2.9)    # mounting ears
+    for y in (-3, 0, 3):
+        sw += bx(wi - 8.5, wi - 5, SW_Y + y - 0.4, SW_Y + y + 0.4, SW_Z - 0.2, SW_Z + 0.2)  # pins
+    out["switch"] = sw + switch_actuator(0.0)
+    head_top = CBORE_DEPTH
+    screws = None
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            p = Pos(sx * SCREW_XY, sy * SCREW_XY, 0)
+            # 2.5 mm core stands in for the thread, which cuts into the 2.6 mm pilot
+            one = p * Pos(0, 0, head_top - SCREW_HEAD_H / 2) * Cylinder(SCREW_HEAD_D / 2, SCREW_HEAD_H)
+            one += p * Pos(0, 0, head_top + SCREW_L / 2) * Cylinder(1.25, SCREW_L)
+            screws = one if screws is None else screws + one
+    out["screws"] = screws
     return out
+
+
+def switch_actuator(offset):
+    """EG1201A slider: 3 mm wide, 5.5 mm tall, travels +/-1.5 mm along Y."""
+    wi = HALF - WALL
+    y = SW_Y + offset
+    return bx(wi, wi + 5.5, y - 1.5, y + 1.5, SW_Z - 1.5, SW_Z + 1.5)
 
 
 def build():

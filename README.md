@@ -40,10 +40,10 @@ Print settings and slicer estimates are on the workbook's Printed Parts tab: abo
 
 ## Assembly
 
-1. Slide the XIAO into the plate rails from the rear, USB port facing out. Keep solder
-   joints low on the board edges, because the rails grip there.
-   Stick its antenna inside the rear wall, away from the wires.
-2. Wire the encoders and slide switch (pin map to be defined with the firmware).
+1. Solder wires to the XIAO, then drop it into the four corner seats, USB port facing the
+   rear, and hold it with a dab of hot glue. Keep glue off the USB port. Connect the included
+   antenna and stick it inside the rear wall, away from the wires.
+2. Hot-glue the slide switch into the side slot, then wire it and the encoders (pin map to be defined with the firmware).
 3. Press each wheel onto its encoder shaft.
 4. Lower each wheel + encoder pair into the cradles: the bushing goes in the outer U-slot,
    the stub boss in the centre one, and the encoder body in its socket.
