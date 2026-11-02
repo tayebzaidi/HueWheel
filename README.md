@@ -31,9 +31,9 @@ proud of the deck. All key dimensions are parameters at the top of
 ## Parts
 
 The full list, with a Have? column that updates the total, is in
-[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). With the hardware already on hand, about **$28.70** is left to buy
+[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). With the hardware already on hand, about **$23.70** is left to buy
 (estimated prices, including $7 shipping and a $5 USB-C charger that may already be owned).
-The encoders, board, switch and screws all come from one DigiKey order.
+The encoders, board and switch all come from one DigiKey order.
 
 Print settings and slicer estimates are on the workbook's Printed Parts tab: about 119 g and
 10 hours on the default PrusaSlicer profile. The shell needs supports from the build plate.
@@ -48,7 +48,7 @@ Print settings and slicer estimates are on the workbook's Printed Parts tab: abo
 4. Lower each wheel + encoder pair into the cradles: the bushing goes in the outer U-slot,
    the stub boss in the centre one, and the encoder body in its socket.
 5. Fit the shell. Internal ribs stop the wheels and encoders lifting out.
-6. Fasten from below with four M3 x 8 pan head screws, then add the feet.
+6. Fasten from below with four M3 x 8 button head screws, then add the feet.
 
 ## Known risks to check on first print
 
