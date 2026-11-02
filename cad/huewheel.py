@@ -201,7 +201,7 @@ def make_plate():
         for sy in (-1, 1):
             x, y = sx * SCREW_XY, sy * SCREW_XY
             plate -= Pos(x, y, PLATE_T / 2) * Cylinder(1.7, PLATE_T + 1)
-            plate -= Pos(x, y, 1) * Cylinder(3.1, 2.01)
+            plate -= Pos(x, y, 1.2) * Cylinder(3.1, 2.41)  # 2.29 mm pan head sits flush
             plate -= Pos(sx * 28, sy * 28, 0.3) * Cylinder(4.5, 0.61)  # feet
 
     def u_cradle(x0, x1, half_y, top, slot):
