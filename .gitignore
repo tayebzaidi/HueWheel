@@ -11,3 +11,8 @@ cad/build/
 cad/step/
 # copy of the bridge automation, restored by tools/hue_dryrun.py
 tools/.hue-backup.json
+# extra values for tools/check_secrets.py to block
+.private-denylist
+.claude/settings.local.json
+.env
+.env.*
