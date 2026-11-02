@@ -10,8 +10,8 @@ mechanically through a window, like a combination lock, so there is no screen.
 |---|---|
 | ![Exploded](docs/renders/exploded.png) | ![Section](docs/renders/section_x10.png) |
 
-**Status:** first-pass CAD and BOM. Nothing has been printed or test-fitted, and there is
-no firmware yet.
+**Status:** first-pass CAD, BOM and [firmware](firmware/README.md). Nothing has been printed
+or test-fitted, and the firmware has not run on real hardware yet.
 
 ## How it works
 
@@ -44,9 +44,9 @@ Print settings and slicer estimates are on the workbook's Printed Parts tab: abo
 1. Solder wires to the XIAO, then drop it into the four corner seats, USB port facing the
    rear, and hold it with a dab of hot glue. Keep glue off the USB port. Connect the included
    antenna and stick it inside the rear wall, away from the wires.
-2. Hot-glue the slide switch into the side slot, then wire it and the encoders (pin map to be defined with the firmware).
+2. Hot-glue the slide switch into the side slot, then wire it and the encoders ([pin map](firmware/README.md#wiring)).
    Push an LED up into each holder inside the front slope and fix it with a dab of hot glue.
-   Wire both LEDs to one GPIO pin, each through its own 220-470 ohm resistor.
+   Wire both LEDs to pin D10, each through its own 220-470 ohm resistor.
 3. Press each wheel onto its encoder shaft.
 4. Lower each wheel + encoder pair into the cradles: the bushing goes in the outer U-slot,
    the stub boss in the centre one, and the encoder body in its socket.
@@ -66,12 +66,14 @@ Print settings and slicer estimates are on the workbook's Printed Parts tab: abo
   A light filament will bounce more light but lets the LEDs glow through the wall.
 - **Numeral alignment.** The angle between the D-flat and the detents is unknown, so numbers
   may sit off-centre at a click. Measure it, then set `CLOCK_OFFSET_DEG` and reprint the wheels.
-- **Wheel position is relative.** Encoders don't report absolute position. The firmware will
-  save the position and needs a re-sync gesture for when a wheel is turned while unpowered.
+- **Wheel position is relative.** Encoders don't report absolute position. The firmware saves the
+  position and has a [re-sync gesture](firmware/README.md#re-sync-the-wheels) for when a wheel is turned while unpowered.
   Changing the alarm in the Hue app won't move the wheels.
-- **Hue wake-up API.** The plan is to edit the app's existing Wake Up automation. It is stored
-  as a `behavior_instance` resource, whose schema is not publicly documented, so this needs
-  testing against a real bridge. The fallback is a separate schedule owned by this device.
+- **Hue wake-up API.** The device edits an existing Wake Up automation, stored as a
+  `behavior_instance` resource. Its schema is not publicly documented and could change with a
+  bridge update. Editing the time and on/off is tested from a PC against a real BSB002 (API
+  1.78) with `tools/hue_dryrun.py`, but not yet from the ESP32. Whether the set time is the
+  start or the end of the fade is also untested.
 
 ## Rebuilding the CAD
 

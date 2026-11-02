@@ -9,3 +9,5 @@ firmware/**/secrets.h
 ~$*.xlsx
 cad/build/
 cad/step/
+# copy of the bridge automation, restored by tools/hue_dryrun.py
+tools/.hue-backup.json
