@@ -31,9 +31,9 @@ proud of the deck. All key dimensions are parameters at the top of
 ## Parts
 
 The full list, with a Have? column that updates the total, is in
-[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). With the hardware already on hand, about **$23.70** is left to buy
-(estimated prices, including $7 shipping and a $5 USB-C charger that may already be owned).
-The encoders, board and switch all come from one DigiKey order.
+[`bom/HueWheel_BOM.xlsx`](bom/HueWheel_BOM.xlsx). With the hardware already on hand, about **$24.70** is left to buy
+(estimated prices, including $7 shipping and $6 for a charger and cable you may already own).
+Everything comes from one DigiKey order.
 
 Print settings and slicer estimates are on the workbook's Printed Parts tab: about 119 g and
 10 hours on the default PrusaSlicer profile. The shell needs supports from the build plate.
