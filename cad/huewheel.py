@@ -10,7 +10,7 @@ from math import asin, atan2, cos, degrees, hypot, radians, sin
 from pathlib import Path
 
 from build123d import (
-    Align, Axis, Box, BuildLine, BuildSketch, Circle, Cylinder, FontStyle,
+    Align, Axis, Box, BuildLine, BuildSketch, Circle, Cone, Cylinder, FontStyle,
     Line, Plane, Pos, Rectangle, RectangleRounded, RegularPolygon, Rot, Sketch, Text,
     ThreePointArc, chamfer, export_step, export_stl, extrude, fillet, make_face,
 )
@@ -65,7 +65,7 @@ CBORE_D, CBORE_DEPTH = 6.2, 2.4
 NUT_AF, NUT_H = 5.5, 2.4       # ISO 4032 M3 nut, nominal
 NUT_FIT = 0.2          # slot clearance across the flats
 NUT_SLOT_H = 2.6
-NUT_Z = PLATE_T + 2.7  # underside of the nut: leaves a 2.7 mm shelf of shell below it
+NUT_Z = PLATE_T + 2.6  # underside of the nut: 2.6 mm shelf below it; keeps the slot roof on a 0.2 mm layer line
 BORE_D = 3.4           # screw clearance through the boss
 BORE_TOP = PLATE_T + 8.5
 LED_D = 3.0            # 3 mm through-hole LED; set to 5.0 for 5 mm LEDs
@@ -73,6 +73,15 @@ LED_LEN = 5.3          # base flange to dome tip
 LED_TIP_BACK = 12.0    # dome tip's distance back from where the slope meets the hump
 LED_HOLDER_L = 4.5
 SW_Y, SW_Z = -15.0, 10.25  # E-Switch EG1201A centre on the right wall
+
+# Printability: everything prints without supports. Hanging features are flat-bottomed
+# beams that bridge wall to wall, and screw holes use the two-layer bridging trick.
+LAYER = 0.2            # slicer layer height the bridging tricks are built for
+CRADLE_TOP = AXIS_Z + 3.9  # plate U-cradles stop here; the shell caps them
+CAP_GAP = 0.2          # shell underside above the cradle tops
+ENC_CAP_Z = AXIS_Z + 7.2   # shell underside above the encoder bodies (0.5 mm clear)
+BULK_X0 = WHEEL_IN + WHEEL_W + 0.5  # inner face of the bulkhead over each encoder
+FIN_T = 1.2            # LED holder support fins
 
 HOURS = [f"{h:02d}" for h in range(24)]                     # 1 click = 1 hour
 MINUTES = [f"{m:02d}" for m in range(0, 60, 5)] * 2         # 1 click = 5 min
@@ -94,6 +103,19 @@ def nut_hex(across_flats, height):
 def bx(x0, x1, y0, y1, z0, z1):
     """Axis-aligned box from min/max coordinates."""
     return Pos((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2) * Box(x1 - x0, y1 - y0, z1 - z0)
+
+
+def bridged_hole(x, y, z0, z1, below_d, round_below=True):
+    """BORE_D hole from z0 up to z1, starting above a wider recess (diameter below_d)
+    without supports: one layer that leaves a BORE_D-wide strip open along Y, which
+    prints as two bridges spanning Y; then one layer with a square BORE_D hole, whose
+    two new edges bridge across the strip in X; then the round hole."""
+    h = BORE_D / 2
+    strip = bx(x - h, x + h, y - below_d / 2, y + below_d / 2, z0 - 0.01, z0 + LAYER)
+    if round_below:
+        strip &= Pos(x, y, z0) * Cylinder(below_d / 2, 2 * LAYER + 0.1)
+    square = bx(x - h, x + h, y - h, y + h, z0, z0 + 2 * LAYER)
+    return strip + square + Pos(x, y, (z0 + 2 * LAYER + z1) / 2) * Cylinder(h, z1 - z0 - 2 * LAYER + 0.01)
 
 
 def cyl_x(x0, x1, d, y=0.0, z=AXIS_Z):
@@ -202,19 +224,43 @@ def make_shell():
             y = sorted((sy * b0, sy * b1))
             shell += bx(*x, *y, PLATE_T, PLATE_T + 12)
 
-    # retaining ribs: stop the wheels/encoders lifting out of the U-cradles
-    keep = body_solid(HALF - 1, SHELL_R - 1, PLATE_T)
-    centre = bx(-3, 3, -8, 8, AXIS_Z + 6.3, AXIS_Z + SHELL_R)
-    tongue = bx(-3, 3, -3, 3, AXIS_Z + 3.9, AXIS_Z + 6.5)
-    shell += (centre & keep) + tongue
+    # Retainers. Each one fills the shell from wall to wall above a flat, horizontal
+    # underside, so the slicer prints that underside as a bridge between the front and
+    # rear walls instead of an unsupported overhang. They stop the wheels and encoders
+    # lifting out of the plate's U-cradles.
+    # Pillars from the bed, just clear of the plate's cradles, cut the two narrow
+    # caps' front-to-rear bridges into three short spans.
+    cap = CRADLE_TOP + CAP_GAP
+    xw = (-WHEEL_IN + 0.5, WHEEL_IN - 0.5)
+    shell += outer & bx(*xw, -HALF, HALF, cap, 100)   # centre web
+    for sy in (-1, 1):
+        shell += bx(*xw, *sorted((sy * 9.5, sy * 12.5)), PLATE_T, cap + 1)
     for s in (-1, 1):
-        x = sorted((s * (MOUNT_X + 1), s * (MOUNT_X + ENC_BODY_L - 1)))
-        shell += bx(*x, -6, 6, AXIS_Z + ENC_BODY_H / 2 + 0.2, AXIS_Z + SHELL_R) & keep
+        # over the encoder upright: low enough to cap the bushing in its U
+        xb = sorted((s * BULK_X0, s * (MOUNT_X - 0.25)))
+        shell += outer & bx(*xb, -HALF, HALF, cap, 100)
+        for sy in (-1, 1):
+            shell += bx(*xb, *sorted((sy * 10.5, sy * 13.5)), PLATE_T, cap + 1)
+        # over the encoder body, out to the side wall: replaces the tilted deck ceiling
+        shell += outer & bx(*sorted((s * (MOUNT_X - 0.25), s * HALF)), -HALF, HALF, ENC_CAP_Z, 100)
 
-    # LED holders on the inside of the front slope, one aimed up at each window
+    # LED holders on the inside of the front slope, one aimed up at each window.
+    # Two fins under each holder rise from the bed, so the holder never starts in mid
+    # air; the LED leads drop out between them.
+    tip, u = led_axis()
+    r_h = (LED_D + 2.6) / 2
+    y_far = tip[0] - LED_LEN * u[0] + r_h * u[1]  # holder's lowest end, edge furthest from the wall
     for s in (-1, 1):
         xc = s * (WHEEL_IN + WHEEL_OUT) / 2
         shell += led_cyl(xc, LED_D + 2.6, -LED_LEN, -LED_LEN + LED_HOLDER_L) & outer
+        for d in (-1, 1):
+            xf = sorted((xc + d * (r_h - FIN_T), xc + d * r_h))
+            fin = bx(*xf, -HALF, y_far + 0.5, PLATE_T, tip[1]) & outer
+            shell += fin - led_cyl(xc, LED_D + 1.1, -LED_LEN - 30, -LED_LEN)
+        # the holder's curved underside starts on a short flat bridge between the fins
+        z_low = tip[1] - LED_LEN * u[1] - r_h * u[0]
+        shell += bx(xc - r_h + FIN_T - 0.1, xc + r_h - FIN_T + 0.1, y_far - 0.4, y_far + 0.4,
+                    z_low - 0.6, z_low + 0.3) - led_cyl(xc, LED_D + 1.1, -LED_LEN - 30, -LED_LEN)
         shell -= led_cyl(xc, LED_D + 0.2, -LED_LEN - 2, 1)
         shell -= led_cyl(xc, LED_D + 1.1, -LED_LEN - 4, -LED_LEN)  # relief for the LED's base flange
 
@@ -249,8 +295,9 @@ def make_shell():
     for sx in (-1, 1):
         for sy in (-1, 1):
             x, y = sx * SCREW_XY, sy * SCREW_XY
-            shell -= Pos(x, y, (PLATE_T - 1 + BORE_TOP) / 2) * Cylinder(BORE_D / 2, BORE_TOP - PLATE_T + 1)
+            shell -= Pos(x, y, (PLATE_T - 1 + NUT_Z) / 2) * Cylinder(BORE_D / 2, NUT_Z - PLATE_T + 1)
             shell -= Pos(x, y, NUT_Z) * nut_hex(NUT_AF + NUT_FIT, NUT_SLOT_H)
+            shell -= bridged_hole(x, y, NUT_Z + NUT_SLOT_H, BORE_TOP, NUT_AF + NUT_FIT, round_below=False)
             mouth = sorted((x, sx * (SCREW_XY - 6)))
             shell -= bx(*mouth, y - (NUT_AF + NUT_FIT) / 2, y + (NUT_AF + NUT_FIT) / 2, NUT_Z, NUT_Z + NUT_SLOT_H)
     return shell
@@ -261,8 +308,8 @@ def make_plate():
     for sx in (-1, 1):
         for sy in (-1, 1):
             x, y = sx * SCREW_XY, sy * SCREW_XY
-            plate -= Pos(x, y, PLATE_T / 2) * Cylinder(1.7, PLATE_T + 1)
             plate -= Pos(x, y, CBORE_DEPTH / 2) * Cylinder(CBORE_D / 2, CBORE_DEPTH + 0.01)
+            plate -= bridged_hole(x, y, CBORE_DEPTH, PLATE_T + 1, CBORE_D)
             plate -= Pos(sx * 28, sy * 28, 0.3) * Cylinder(4.5, 0.61)  # feet
 
     def u_cradle(x0, x1, half_y, top, slot):
@@ -270,10 +317,10 @@ def make_plate():
         c -= bx(x0 - 1, x1 + 1, -slot / 2, slot / 2, AXIS_Z, top + 1)
         return c - cyl_x(x0 - 1, x1 + 1, slot)
 
-    plate += u_cradle(-3, 3, 9, AXIS_Z + 6, 7.4)
+    plate += u_cradle(-3, 3, 9, CRADLE_TOP, 7.4)
     for s in (-1, 1):
         x = sorted((s * UPRIGHT[0], s * UPRIGHT[1]))
-        plate += u_cradle(*x, 10, AXIS_Z + 7, ENC_BUSH_D + 0.3)
+        plate += u_cradle(*x, 10, CRADLE_TOP, ENC_BUSH_D + 0.3)
         # encoder socket behind the upright: floor + two cheeks
         xs = sorted((s * UPRIGHT[1], s * (UPRIGHT[1] + ENC_BODY_L + 0.5)))
         xf = sorted((s * UPRIGHT[1], s * (UPRIGHT[1] + ENC_LEDGE)))
@@ -335,6 +382,10 @@ def make_wheel(inner_sign, labels):
     # bushing clearance + D bore
     pocket_floor = MOUNT_X - ENC_SHAFT_L + ENC_FLAT_L - 0.5  # round part of the shaft stays clear of the D bore
     w -= cyl_x(-inner_sign * pocket_floor, xo + inner_sign * -1, ENC_BUSH_D + 1.5)
+    # 45 degree cone from the pocket floor down to the D-flat, so the pocket's roof
+    # (the wheel prints outer face down) needs no bridging
+    r0, r1 = (ENC_BUSH_D + 1.5) / 2, ENC_SHAFT_FLAT - ENC_SHAFT_D / 2 + FIT
+    w -= Pos(-inner_sign * (pocket_floor - (r0 - r1) / 2), 0, AXIS_Z) * Rot(0, inner_sign * 90, 0) * Cone(r0, r1, r0 - r1)
     w -= d_bore(*sorted((-inner_sign * BORE_END, -inner_sign * (pocket_floor + 0.5))))
 
     # engraved numerals, labels[i] sits at phi = i * PITCH

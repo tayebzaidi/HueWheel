@@ -1,19 +1,12 @@
 """Render docs/renders/*.png from cad/build/*.stl (needs pyvista + a display
 or xvfb-run):  xvfb-run -a python cad/render.py"""
-from pathlib import Path
-
 import numpy as np
 import pyvista as pv
 
-ROOT = Path(__file__).parent
+from scene import COL, EXPLODE, ROOT, load_meshes
+
 OUT = ROOT.parent / "docs" / "renders"
-COL = {"plate": "#3c4148", "shell": "#d9d5cc", "wheel_hours": "#e0803a",
-       "wheel_minutes": "#e0803a", "enc_l": "#8d939b", "enc_r": "#8d939b", "mcu": "#2f6d4f",
-       "switch": "#c23b3b", "screws": "#c9ccd1", "nuts": "#e8c547", "leds": "#f2f2f2"}
-EXPLODE = {"plate": (0, 0, 0), "shell": (0, 0, 90), "wheel_hours": (-8, 0, 34),
-           "wheel_minutes": (8, 0, 34), "enc_l": (-62, 0, 34), "enc_r": (62, 0, 34), "mcu": (0, 42, 0),
-           "switch": (48, 0, 90), "screws": (0, 0, -35), "nuts": (0, 0, 90), "leds": (0, 0, 90)}
-meshes = {n: pv.read(ROOT / "build" / f"{n}.stl") for n in COL}
+meshes = load_meshes()
 
 
 def shot(name, parts, cam, offs=None, clip=None, size=(1400, 1050), zoom=1.0):
@@ -62,3 +55,8 @@ for el in (10, 25, 46):
 shot("section_led", ALL, view(90, 0, 110, (10.5, -14, 36)), clip=((1, 0, 0), (10.5, 0, 0)), size=(1200, 900))
 shot("section_x10", ALL, view(90, 0, 150), clip=((1, 0, 0), (10.5, 0, 0)))
 shot("section_y0", ALL, view(0, 0, 150), clip=((0, -1, 0), (0, 0, 0)))
+# printability: what the shell looks like from the bed side, and the new bridges
+shot("shell_inside", ["shell"], view(-25, -60, 200, (0, 0, 20)))
+shot("section_x19_caps", ALL, view(90, 0, 150), clip=((1, 0, 0), (19.5, 0, 0)))
+shot("section_x24_encoder_cap", ALL, view(90, 0, 150), clip=((1, 0, 0), (24.0, 0, 0)))
+shot("counterbore", ["plate"], view(-20, -60, 40, (36, -36, 2)), size=(1200, 900))

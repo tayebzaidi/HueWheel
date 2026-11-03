@@ -10,9 +10,10 @@ lock. There's no screen and no app to open, and a switch on the side turns the a
 |---|---|
 | ![Exploded](docs/renders/exploded.png) | ![Section](docs/renders/section_x10.png) |
 
-> **Project status:** this is an untested first build. Nothing has been printed yet and the
-> firmware hasn't run on a real board. Changing a real alarm has only been tried from a PC, on
-> a BSB002 bridge. Expect to adjust things along the way: [what might need adjusting](#what-might-need-adjusting).
+> **Project status:** this is an untested first build. The wheels have been printed. The shell
+> and plate were redesigned after the first print to need no supports, and that version hasn't
+> been printed yet. The firmware hasn't run on a real board. Changing a real alarm has only
+> been tried from a PC, on a BSB002 bridge. Expect to adjust things along the way: [what might need adjusting](#what-might-need-adjusting).
 
 ## Using it
 
@@ -71,12 +72,19 @@ been tried on a real part. If it fits, print the rest from [`cad/stl`](cad/stl):
 | Part | File | Supports |
 |---|---|---|
 | Base plate | `plate.stl` | None |
-| Shell | `shell.stl` | From the build plate only |
+| Shell | `shell.stl` | None |
 | Hours wheel | `wheel_hours.stl` | None |
 | Minutes wheel | `wheel_minutes.stl` | None |
 
-The files are already in the right orientation. Expect about 119 g and 10 hours in total, or
-somewhat different on your printer. Those figures are for 0.2 mm layers and 15% infill.
+The files are already in the right orientation. **Turn supports off for every part.** All four
+are designed to print without them. Automatic supports would also fill the engraved numerals.
+Everything that hangs is either a bridge between two walls or a slope of 45 degrees or steeper.
+Print the shell and plate at 0.2 mm layers, because the bridged screw holes are built on that
+layer height. Expect about 130 g in total.
+
+Each screw hole is closed over by two thin layers with a square opening in the middle. They are
+bridges that let the round hole start without supports. Don't drill them out, because the
+screw passes through the square.
 
 Darken the engraved numerals with a fine marker or paint pen. Use black or another dark
 colour, because a red numeral disappears under a red LED.
@@ -191,7 +199,8 @@ With the log still open, and everything still loose on the bench:
 6. Slide an M3 nut into the slot in each corner block from the inside, with the flats against
    the slot walls. Add a small dab of hot glue at the slot mouth so it can't fall out, keeping
    glue out of the screw hole.
-7. Fit the shell. Its internal ribs stop the wheels and encoders lifting out.
+7. Fit the shell. Its internal walls come down onto the cradles, so the wheels and encoders
+   can't lift out.
 8. Fasten from below with the four M3 x 8 screws, then add four dots of hot glue as feet.
 
 If it slides when you roll a wheel, glue some washers or coins inside the front of the base.
@@ -245,5 +254,7 @@ To rebuild the CAD:
 ```bash
 conda run -n base python cad/huewheel.py    # parts: cad/stl (print-ready), cad/step (untracked)
 conda run -n base python cad/assemble.py    # interference check + cad/step/assembly.step
-xvfb-run -a python cad/render.py            # docs/renders; needs pyvista, not in conda base
+python cad/printcheck.py                    # supportless-print check; needs trimesh + shapely
+xvfb-run -a python cad/render.py            # docs/renders; needs pyvista
+python cad/view.py                          # interactive 3D viewer of the assembly; needs pyvista
 ```
