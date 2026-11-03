@@ -6,7 +6,8 @@ Slices each part as it sits on the bed, layer by layer. Anything in a layer that
 more than a 45 degree step out from the layer below has nothing to print on. Those
 areas pass only if they are bridges: straight lines in one direction that are
 anchored at both ends and no longer than BRIDGE_MAX, or short ledges reaching no
-more than LEDGE past the layer below. Prints PRINT CHECK PASSED or
+more than LEDGE past the layer below. Narrow islands that grow from the bed fail if
+they stand too tall before joining the rest of the part. Prints PRINT CHECK PASSED or
 lists each failing area with its height and position.
 """
 import sys
@@ -29,7 +30,37 @@ LEDGE = 0.8           # a ledge reaching no further than this past the layer bel
 CHAIN = 4             # ...but not when it sits mostly on the previous layer's ledge, and that on
                       # another, for more than this many layers: that is a shallow ceiling
                       # (the first shell's 15 degree deck failed this way)
+STABLE = 10.0         # an island this wide (shortest side of its bounding rectangle) can't tip
+ASPECT = 5.0          # a narrower island growing from the bed fails once it stands taller than
+                      # this many times its narrowest width before joining something stable
+                      # (the second shell's 31 mm pillars on a 3 mm footprint fell over)
 ROOT = Path(__file__).parent
+
+
+def width(p):
+    """Shortest side of the polygon's minimum rotated bounding rectangle."""
+    xy = np.array(p.minimum_rotated_rectangle.exterior.coords)[:3]
+    return min(np.linalg.norm(xy[1] - xy[0]), np.linalg.norm(xy[2] - xy[1]))
+
+
+def columns(prev_cols, cur, first):
+    """Track islands that stand on the bed without joining anything wide.
+    prev_cols: list of (polygon, height, narrowest width, stable). Returns the same for cur."""
+    out = []
+    for p in getattr(cur, "geoms", [cur]):
+        if p.is_empty or p.area < MIN_AREA:
+            continue
+        w = width(p)
+        below = [c for c in prev_cols if c[0].intersects(p)]
+        if w >= STABLE or any(c[3] for c in below):
+            out.append((p, 0.0, w, True))
+        elif below:
+            out.append((p, max(c[1] for c in below) + LAYER, min([w] + [c[2] for c in below]), False))
+        elif first:
+            out.append((p, LAYER, w, False))
+        else:  # starts in mid air: the overhang check judges it
+            out.append((p, 0.0, w, True))
+    return out
 
 
 def polys(mesh, z):
@@ -74,9 +105,17 @@ def check(name):
     top = mesh.bounds[1][2]
     prev = None
     prev_ledges = []      # (region, chain depth) of the layer below
+    cols, tall = [], {}   # free-standing islands; worst height/width seen per island start
     fails, bridges, ledges = [], [], 0
     for z in np.arange(LAYER / 2, top, LAYER):
         cur = polys(mesh, z)
+        cols = columns(cols, cur, prev is None)
+        for p, h, w, stable in cols:
+            if not stable and h > ASPECT * w:
+                key = (round(p.centroid.x), round(p.centroid.y))
+                if not any(abs(k[0] - key[0]) <= 3 and abs(k[1] - key[1]) <= 3 for k in tall):
+                    tall[key] = f"z={z - LAYER / 2:5.1f} at ({p.centroid.x:6.1f}, {p.centroid.y:6.1f})  " \
+                                f"free-standing column {w:.1f} mm wide is over {ASPECT:.0f}x as tall"
         cur_ledges = []
         if prev is not None and not cur.is_empty:
             raw = cur.difference(prev.buffer(STEP))
@@ -104,6 +143,7 @@ def check(name):
                 else:
                     fails.append(f"{where}  {share:4.0%} anchored both ends, longest {span:4.1f} mm")
         prev, prev_ledges = cur, cur_ledges
+    fails += tall.values()
     print(f"{name}: {ledges} short ledges, {len(bridges)} bridges, {len(fails)} unsupported")
     for b in bridges:
         print("   ok  ", b)

@@ -81,7 +81,7 @@ CRADLE_TOP = AXIS_Z + 3.9  # plate U-cradles stop here; the shell caps them
 CAP_GAP = 0.2          # shell underside above the cradle tops
 ENC_CAP_Z = AXIS_Z + 7.2   # shell underside above the encoder bodies (0.5 mm clear)
 BULK_X0 = WHEEL_IN + WHEEL_W + 0.5  # inner face of the bulkhead over each encoder
-FIN_T = 1.2            # LED holder support fins
+FIN_T = 1.6           # LED holder support fins
 
 HOURS = [f"{h:02d}" for h in range(24)]                     # 1 click = 1 hour
 MINUTES = [f"{m:02d}" for m in range(0, 60, 5)] * 2         # 1 click = 5 min
@@ -228,19 +228,28 @@ def make_shell():
     # underside, so the slicer prints that underside as a bridge between the front and
     # rear walls instead of an unsupported overhang. They stop the wheels and encoders
     # lifting out of the plate's U-cradles.
-    # Pillars from the bed, just clear of the plate's cradles, cut the two narrow
-    # caps' front-to-rear bridges into three short spans.
+    # Below each cap, a wall rises from the bed and runs out to the front and rear outer
+    # walls, leaving a window where the plate's cradle sits. The cap bridges only that
+    # window, and no part of the wall stands alone on the bed (free-standing pillars
+    # here fell over on the second print).
     cap = CRADLE_TOP + CAP_GAP
     xw = (-WHEEL_IN + 0.5, WHEEL_IN - 0.5)
     shell += outer & bx(*xw, -HALF, HALF, cap, 100)   # centre web
-    for sy in (-1, 1):
-        shell += bx(*xw, *sorted((sy * 9.5, sy * 12.5)), PLATE_T, cap + 1)
+    shell += bx(*xw, -12.5, -9.5, PLATE_T, cap + 1)   # front: post beside the cradle...
+    shell += outer & bx(-1, 1, -HALF, -9.5, PLATE_T, cap + 1)  # ...and a rib out to the wall
+    # rear: the board and USB-C plug sit behind, so the wall arches over them. A short
+    # post stands in front of the board's stop; the tunnel roof bridges post to rear wall.
+    mcu_y0 = HALF - WALL - MCU_L - 1.0
+    tunnel = bx(-MCU_W / 2 - 0.5, MCU_W / 2 + 0.5, mcu_y0 - 2.2, HALF + 1, PLATE_T - 1, 15.0)
+    shell += (outer & bx(*xw, 9.5, HALF, PLATE_T, cap + 1)) - tunnel
     for s in (-1, 1):
         # over the encoder upright: low enough to cap the bushing in its U
         xb = sorted((s * BULK_X0, s * (MOUNT_X - 0.25)))
         shell += outer & bx(*xb, -HALF, HALF, cap, 100)
-        for sy in (-1, 1):
-            shell += bx(*xb, *sorted((sy * 10.5, sy * 13.5)), PLATE_T, cap + 1)
+        shell += outer & bx(*xb, -HALF, -10.5, PLATE_T, cap + 1)
+        # rear: a doorway at the bottom passes the encoder and switch wires to the board
+        door = bx(xb[0] - 1, xb[1] + 1, 16.0, 30.0, PLATE_T - 1, 9.0)
+        shell += (outer & bx(*xb, 10.5, HALF, PLATE_T, cap + 1)) - door
         # over the encoder body, out to the side wall: replaces the tilted deck ceiling
         shell += outer & bx(*sorted((s * (MOUNT_X - 0.25), s * HALF)), -HALF, HALF, ENC_CAP_Z, 100)
 

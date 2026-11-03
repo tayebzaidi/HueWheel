@@ -69,22 +69,51 @@ you need them. These are estimates, so check them at checkout.
 **Print one wheel first** and try it on an encoder. The fit comes from the datasheet and hasn't
 been tried on a real part. If it fits, print the rest from [`cad/stl`](cad/stl):
 
-| Part | File | Supports |
-|---|---|---|
-| Base plate | `plate.stl` | None |
-| Shell | `shell.stl` | None |
-| Hours wheel | `wheel_hours.stl` | None |
-| Minutes wheel | `wheel_minutes.stl` | None |
+| Part | File | Layer height | Bambu Studio profile |
+|---|---|---|---|
+| Shell | `shell.stl` | 0.2 mm, first layer 0.2 mm too | 0.20mm Standard |
+| Base plate | `plate.stl` | 0.2 mm, first layer 0.2 mm too | 0.20mm Standard |
+| Hours wheel | `wheel_hours.stl` | 0.12 mm | 0.12mm Fine |
+| Minutes wheel | `wheel_minutes.stl` | 0.12 mm | 0.12mm Fine |
 
-The files are already in the right orientation. **Turn supports off for every part.** All four
-are designed to print without them. Automatic supports would also fill the engraved numerals.
-Everything that hangs is either a bridge between two walls or a slope of 45 degrees or steeper.
-Print the shell and plate at 0.2 mm layers, because the bridged screw holes are built on that
-layer height. Expect about 130 g in total.
+These settings were worked out on a Bambu Lab X1 Carbon with PLA. Any printer that bridges
+reasonably well should work.
 
-Each screw hole is closed over by two thin layers with a square opening in the middle. They are
-bridges that let the round hole start without supports. Don't drill them out, because the
-screw passes through the square.
+**All parts:**
+
+- **Turn supports off, including automatic supports.** No part needs them, and on the wheels
+  they would fill the engraved numerals. Everything that hangs is either a bridge between two
+  walls or a slope of 45 degrees or steeper.
+- **Don't rotate or flip anything.** The files are already in print orientation: the shell open
+  side down, the plate bottom face down, and the wheels outer face down.
+- 15% infill and the default walls are fine. Expect about 145 g of filament in total.
+- No brim is needed. Every tall feature inside the shell is joined to the outer walls.
+- Slicers use one layer height for everything on a plate, so print the wheels on a separate
+  plate from the shell and base plate.
+
+**Shell and base plate:**
+
+- **The 0.2 mm layers matter.** Each screw hole and nut slot starts with two 0.2 mm bridge
+  layers, a slot and then a square opening, and they are drawn to land on 0.2 mm layer lines.
+  A thicker first layer or adaptive layer height shifts them off those lines.
+- **Turn off thick bridges** ("Thick bridges" in Bambu Studio's Quality settings). Thick bridges
+  are laid at about nozzle height, which merges the two thin layers into one.
+- Print the shell first, because it has the most bridges. The longest is the 24 mm roof of the
+  tunnel over the microcontroller board. The flat undersides over the wheels and encoders are
+  up to about 21 mm long.
+
+**Wheels:** slow outer walls, high part cooling, and the seam placed in a rib groove.
+
+**Check after printing:**
+
+- **The flat undersides over the encoders** should be flat. They clear the encoder bodies by
+  0.5 mm and the cradle tops by 0.2 mm, so sand or trim any droop.
+- **The square opening above each screw hole and nut slot** should be clear. Pick out any
+  strings, but don't drill the layers out, because the screw passes through the square.
+- **Each M3 nut** should slide all the way into its slot.
+- **Each LED holder** should stand on two fins, with a gap between them for the leads.
+- **The doorway at the bottom of each rear encoder wall** should be open. The encoder and switch
+  wires pass through it to the board.
 
 Darken the engraved numerals with a fine marker or paint pen. Use black or another dark
 colour, because a red numeral disappears under a red LED.
@@ -200,7 +229,10 @@ With the log still open, and everything still loose on the bench:
    the slot walls. Add a small dab of hot glue at the slot mouth so it can't fall out, keeping
    glue out of the screw hole.
 7. Fit the shell. Its internal walls come down onto the cradles, so the wheels and encoders
-   can't lift out.
+   can't lift out. Before lowering it, lay the encoder and switch wires on the plate behind the
+   encoders and run them to the board towards the back, so they pass through the low doorway in
+   each rear wall. Run each LED's wires straight back to the board on its own side
+   of the centre wall.
 8. Fasten from below with the four M3 x 8 screws, then add four dots of hot glue as feet.
 
 If it slides when you roll a wheel, glue some washers or coins inside the front of the base.
