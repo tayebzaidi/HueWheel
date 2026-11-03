@@ -249,12 +249,26 @@ one. Someone on your home network who impersonated the bridge could capture its 
 - Size is 84 x 84 x 52.6 mm, with 44 mm wheels. All key dimensions are at the top of
   [`cad/huewheel.py`](cad/huewheel.py).
 
-To rebuild the CAD:
+To rebuild the CAD, everything runs in one conda environment (base here) with build123d,
+pyvista, trimesh, shapely and rtree installed:
 
 ```bash
-conda run -n base python cad/huewheel.py    # parts: cad/stl (print-ready), cad/step (untracked)
-conda run -n base python cad/assemble.py    # interference check + cad/step/assembly.step
-python cad/printcheck.py                    # supportless-print check; needs trimesh + shapely
-xvfb-run -a python cad/render.py            # docs/renders; needs pyvista
-python cad/view.py                          # interactive 3D viewer of the assembly; needs pyvista
+conda activate base
+python cad/huewheel.py      # parts: cad/stl (print-ready), cad/step (untracked)
+python cad/assemble.py      # interference check, cad/build meshes, cad/step/assembly.step
+python cad/printcheck.py    # supportless-print check
+xvfb-run -a python cad/render.py   # docs/renders
+python cad/view.py          # interactive 3D viewer of the assembly
 ```
+
+Anaconda's VTK bundles its own Mesa without GPU drivers, so on Linux its windows can fail with
+"Could not find a decent config". Point it at the system Mesa, and load the system's newer
+`libstdc++` and `libdrm`, then reactivate the environment:
+
+```bash
+conda env config vars set -n base __GLX_VENDOR_LIBRARY_NAME=mesa \
+  LD_PRELOAD="/usr/lib/libstdc++.so.6 /usr/lib/libdrm_amdgpu.so.1 /usr/lib/libdrm.so.2"
+```
+
+The `libdrm` entries are for AMD GPUs. If it still fails, run with `LD_DEBUG=libs` to find
+the conda library that's older than the system driver needs.

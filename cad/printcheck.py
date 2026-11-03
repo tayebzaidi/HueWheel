@@ -1,4 +1,4 @@
-"""Supportless-print check for cad/stl/*.stl (needs trimesh + shapely).
+"""Supportless-print check for cad/stl/*.stl (needs trimesh, shapely and rtree).
 
     python cad/printcheck.py [part ...]
 
