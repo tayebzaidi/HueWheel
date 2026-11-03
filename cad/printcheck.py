@@ -7,7 +7,8 @@ more than a 45 degree step out from the layer below has nothing to print on. Tho
 areas pass only if they are bridges: straight lines in one direction that are
 anchored at both ends and no longer than BRIDGE_MAX, or short ledges reaching no
 more than LEDGE past the layer below. Narrow islands that grow from the bed fail if
-they stand too tall before joining the rest of the part. Prints PRINT CHECK PASSED or
+they stand too tall before joining the rest of the part, and first-layer strips
+narrower than BED_MIN fail because they peel off the bed. Prints PRINT CHECK PASSED or
 lists each failing area with its height and position.
 """
 import sys
@@ -34,6 +35,8 @@ STABLE = 10.0         # an island this wide (shortest side of its bounding recta
 ASPECT = 5.0          # a narrower island growing from the bed fails once it stands taller than
                       # this many times its narrowest width before joining something stable
                       # (the second shell's 31 mm pillars on a 3 mm footprint fell over)
+BED_MIN = 2.4         # narrowest strip trusted to stay down on the first layer (the shell's
+                      # 2.4 mm wall held; a 1.6 mm LED fin curled up on the third print)
 ROOT = Path(__file__).parent
 
 
@@ -109,6 +112,13 @@ def check(name):
     fails, bridges, ledges = [], [], 0
     for z in np.arange(LAYER / 2, top, LAYER):
         cur = polys(mesh, z)
+        if prev is None:  # first layer: whatever an opening of BED_MIN removes is too thin
+            r = BED_MIN / 2 - 0.05
+            thin = cur.difference(cur.buffer(-r).buffer(r))
+            for g in getattr(thin, "geoms", [thin]):
+                if g.area > 1.0 and width(g) > 0.3:
+                    fails.append(f"z=  0.0 at ({g.centroid.x:6.1f}, {g.centroid.y:6.1f}) area {g.area:6.1f} mm2  "
+                                 f"first-layer strip under {BED_MIN} mm wide")
         cols = columns(cols, cur, prev is None)
         for p, h, w, stable in cols:
             if not stable and h > ASPECT * w:

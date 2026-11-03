@@ -81,7 +81,9 @@ CRADLE_TOP = AXIS_Z + 3.9  # plate U-cradles stop here; the shell caps them
 CAP_GAP = 0.2          # shell underside above the cradle tops
 ENC_CAP_Z = AXIS_Z + 7.2   # shell underside above the encoder bodies (0.5 mm clear)
 BULK_X0 = WHEEL_IN + WHEEL_W + 0.5  # inner face of the bulkhead over each encoder
-FIN_T = 1.6           # LED holder support fins
+FIN_T = 2.4           # LED holder support fins (1.6 mm peeled off the bed on the third print)
+RIB_T = 3.0           # front centre rib
+FOOT_W, FOOT_H = 1.5, 1.0  # flange on each side of the thin walls' first 1 mm, for bed grip
 
 HOURS = [f"{h:02d}" for h in range(24)]                     # 1 click = 1 hour
 MINUTES = [f"{m:02d}" for m in range(0, 60, 5)] * 2         # 1 click = 5 min
@@ -116,6 +118,12 @@ def bridged_hole(x, y, z0, z1, below_d, round_below=True):
         strip &= Pos(x, y, z0) * Cylinder(below_d / 2, 2 * LAYER + 0.1)
     square = bx(x - h, x + h, y - h, y + h, z0, z0 + 2 * LAYER)
     return strip + square + Pos(x, y, (z0 + 2 * LAYER + z1) / 2) * Cylinder(h, z1 - z0 - 2 * LAYER + 0.01)
+
+
+def foot(x0, x1, y0, y1):
+    """Bed flange widening a thin wall's first FOOT_H mm by FOOT_W on each side in X.
+    Stepping in above it is never an overhang."""
+    return bx(x0 - FOOT_W, x1 + FOOT_W, y0, y1, PLATE_T, PLATE_T + FOOT_H)
 
 
 def cyl_x(x0, x1, d, y=0.0, z=AXIS_Z):
@@ -236,7 +244,8 @@ def make_shell():
     xw = (-WHEEL_IN + 0.5, WHEEL_IN - 0.5)
     shell += outer & bx(*xw, -HALF, HALF, cap, 100)   # centre web
     shell += bx(*xw, -12.5, -9.5, PLATE_T, cap + 1)   # front: post beside the cradle...
-    shell += outer & bx(-1, 1, -HALF, -9.5, PLATE_T, cap + 1)  # ...and a rib out to the wall
+    shell += outer & (bx(-RIB_T / 2, RIB_T / 2, -HALF, -9.5, PLATE_T, cap + 1)  # ...and a rib out to the wall
+                      + foot(-RIB_T / 2, RIB_T / 2, -HALF, -12.5))
     # rear: the board and USB-C plug sit behind, so the wall arches over them. A short
     # post stands in front of the board's stop; the tunnel roof bridges post to rear wall.
     mcu_y0 = HALF - WALL - MCU_L - 1.0
@@ -245,11 +254,13 @@ def make_shell():
     for s in (-1, 1):
         # over the encoder upright: low enough to cap the bushing in its U
         xb = sorted((s * BULK_X0, s * (MOUNT_X - 0.25)))
+        # feet flare outward only: the wheels pass the inner face as the shell goes on
+        xbf = sorted((s * BULK_X0, s * (MOUNT_X - 0.25 + FOOT_W)))
         shell += outer & bx(*xb, -HALF, HALF, cap, 100)
-        shell += outer & bx(*xb, -HALF, -10.5, PLATE_T, cap + 1)
+        shell += outer & (bx(*xb, -HALF, -10.5, PLATE_T, cap + 1) + bx(*xbf, -HALF, -10.5, PLATE_T, PLATE_T + FOOT_H))
         # rear: a doorway at the bottom passes the encoder and switch wires to the board
-        door = bx(xb[0] - 1, xb[1] + 1, 16.0, 30.0, PLATE_T - 1, 9.0)
-        shell += (outer & bx(*xb, 10.5, HALF, PLATE_T, cap + 1)) - door
+        door = bx(xb[0] - FOOT_W - 1, xb[1] + FOOT_W + 1, 16.0, 30.0, PLATE_T - 1, 9.0)
+        shell += (outer & (bx(*xb, 10.5, HALF, PLATE_T, cap + 1) + bx(*xbf, 10.5, HALF, PLATE_T, PLATE_T + FOOT_H))) - door
         # over the encoder body, out to the side wall: replaces the tilted deck ceiling
         shell += outer & bx(*sorted((s * (MOUNT_X - 0.25), s * HALF)), -HALF, HALF, ENC_CAP_Z, 100)
 
@@ -258,17 +269,18 @@ def make_shell():
     # air; the LED leads drop out between them.
     tip, u = led_axis()
     r_h = (LED_D + 2.6) / 2
+    g = r_h - 1.6  # half the gap between a holder's fins, where the leads drop out
     y_far = tip[0] - LED_LEN * u[0] + r_h * u[1]  # holder's lowest end, edge furthest from the wall
     for s in (-1, 1):
         xc = s * (WHEEL_IN + WHEEL_OUT) / 2
         shell += led_cyl(xc, LED_D + 2.6, -LED_LEN, -LED_LEN + LED_HOLDER_L) & outer
         for d in (-1, 1):
-            xf = sorted((xc + d * (r_h - FIN_T), xc + d * r_h))
-            fin = bx(*xf, -HALF, y_far + 0.5, PLATE_T, tip[1]) & outer
+            xf = sorted((xc + d * g, xc + d * (g + FIN_T)))  # thicker fins grow outward
+            fin = (bx(*xf, -HALF, y_far + 0.5, PLATE_T, tip[1]) + foot(*xf, -HALF, y_far + 0.5)) & outer
             shell += fin - led_cyl(xc, LED_D + 1.1, -LED_LEN - 30, -LED_LEN)
         # the holder's curved underside starts on a short flat bridge between the fins
         z_low = tip[1] - LED_LEN * u[1] - r_h * u[0]
-        shell += bx(xc - r_h + FIN_T - 0.1, xc + r_h - FIN_T + 0.1, y_far - 0.4, y_far + 0.4,
+        shell += bx(xc - g - 0.1, xc + g + 0.1, y_far - 0.4, y_far + 0.4,
                     z_low - 0.6, z_low + 0.3) - led_cyl(xc, LED_D + 1.1, -LED_LEN - 30, -LED_LEN)
         shell -= led_cyl(xc, LED_D + 0.2, -LED_LEN - 2, 1)
         shell -= led_cyl(xc, LED_D + 1.1, -LED_LEN - 4, -LED_LEN)  # relief for the LED's base flange

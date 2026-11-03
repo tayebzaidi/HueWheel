@@ -87,7 +87,8 @@ reasonably well should work.
 - **Don't rotate or flip anything.** The files are already in print orientation: the shell open
   side down, the plate bottom face down, and the wheels outer face down.
 - 15% infill and the default walls are fine. Expect about 145 g of filament in total.
-- No brim is needed. Every tall feature inside the shell is joined to the outer walls.
+- No brim is needed. Every tall feature inside the shell is joined to the outer walls, and the
+  thin inner walls have a 1 mm tall foot that widens them on the first layers.
 - Slicers use one layer height for everything on a plate, so print the wheels on a separate
   plate from the shell and base plate.
 
