@@ -53,9 +53,11 @@ and the total updates. From scratch you need:
   wheel numbering depends on it.
 - 1 Seeed XIAO ESP32C3, the version without pre-soldered headers
 - 1 E-Switch EG1201A slide switch
-- 2 LEDs, 3 mm, red or amber
+- 2 LEDs, 5 mm, red or amber. For 3 mm LEDs, set `LED_D = 3.0` and `LED_LEN = 5.3` in
+  `cad/huewheel.py` and re-export.
 - 2 resistors, 220-470 ohm
-- 4 M3 x 8 button head screws and 4 M3 nuts
+- 4 M3 x 8 button head screws
+- 4 M3 heat-set inserts, 6 mm long and 4.2 mm across (sold as "M3 x 6 x 4.2")
 - Hookup wire, about 1 m in total
 - A USB charger, and a USB-A to USB-C cable that carries data
 - About 120 g of PLA
@@ -67,7 +69,16 @@ you need them. These are estimates, so check them at checkout.
 ### 2. Print the parts
 
 **Print one wheel first** and try it on an encoder. The fit comes from the datasheet and hasn't
-been tried on a real part. If it fits, print the rest from [`cad/stl`](cad/stl):
+been tried on a real part.
+
+**Print the insert test block too:** [`cad/test/insert_test.stl`](cad/test/insert_test.stl), at
+0.2 mm, as exported. It has five insert holes from 3.8 to 4.2 mm, each built like the ones in the
+shell. Press an insert into each, then screw an M3 screw into each one. Choose the smallest hole that
+took the insert without cracking or bulging and still holds when the screw is tight. Set
+`INSERT_HOLE_D` in `cad/huewheel.py` to that size and re-export. The test block is not part of the
+build.
+
+Once both fit, print the rest from [`cad/stl`](cad/stl):
 
 | Part | File | Layer height | Bambu Studio profile |
 |---|---|---|---|
@@ -94,7 +105,7 @@ reasonably well should work.
 
 **Shell and base plate:**
 
-- **The 0.2 mm layers matter.** Each screw hole and nut slot starts with two 0.2 mm bridge
+- **The 0.2 mm layers matter.** Each screw hole in the plate starts with two 0.2 mm bridge
   layers, a slot and then a square opening, and they are drawn to land on 0.2 mm layer lines.
   A thicker first layer or adaptive layer height shifts them off those lines.
 - **Turn off thick bridges** ("Thick bridges" in Bambu Studio's Quality settings). Thick bridges
@@ -109,10 +120,12 @@ reasonably well should work.
 
 - **The flat undersides over the encoders** should be flat. They clear the encoder bodies by
   0.5 mm and the cradle tops by 0.2 mm, so sand or trim any droop.
-- **The square opening above each screw hole and nut slot** should be clear. Pick out any
+- **The square opening above each screw hole in the plate** should be clear. Pick out any
   strings, but don't drill the layers out, because the screw passes through the square.
-- **Each M3 nut** should slide all the way into its slot.
-- **Each LED holder** should stand on two fins, with a gap between them for the leads.
+- **Each insert hole** in the shell's corner blocks should be round and clear.
+- **The low lip around the edge of the plate** should let the shell drop on without forcing.
+- **Each LED slot** inside the front slope should be clear between its two walls, with a small
+  step near the top where the slot narrows.
 - **The doorway at the bottom of each rear encoder wall** should be open. The encoder and switch
   wires pass through it to the board.
 
@@ -222,14 +235,19 @@ With the log still open, and everything still loose on the bench:
    a dab of hot glue. Keep glue off the USB port. Stick the antenna inside the rear wall, away
    from the wires.
 2. Hot-glue the slide switch into the side slot.
-3. Push an LED up into each holder inside the front slope and fix it with a dab of hot glue.
+3. Hold the shell upside down. Each LED goes into a slot inside the front slope: lower it
+   through the open bottom, dome first, set it into the slot between the two walls, and slide
+   it towards the window until its rim stops at the step where the slot narrows. Fix it with a
+   dab of hot glue and bend the leads back towards the rear.
+   [Picture of the path](docs/renders/led_insert.png).
 4. Press each wheel onto its encoder shaft: hours on the left, minutes on the right.
 5. Lower each wheel and encoder into the cradles. The bushing goes in the outer U-slot, the stub
    boss in the centre one, and the encoder body in its socket.
-6. Slide an M3 nut into the slot in each corner block from the inside, with the flats against
-   the slot walls. Add a small dab of hot glue at the slot mouth so it can't fall out, keeping
-   glue out of the screw hole.
-7. Fit the shell. Its internal walls come down onto the cradles, so the wheels and encoders
+6. Press an M3 insert into the hole in each corner block. With the shell upside down, set the
+   insert on the hole and let the iron (about 220 C for PLA) push it straight down until it is
+   flush with the surface or just below it. Trim off any plastic that bulges up around it, or the
+   shell won't sit flat. Leave it to cool before fitting the shell.
+7. Fit the shell. The lip on the plate holds it in place. Its internal walls come down onto the cradles, so the wheels and encoders
    can't lift out. Before lowering it, lay the encoder and switch wires on the plate behind the
    encoders and run them to the board towards the back, so they pass through the low doorway in
    each rear wall. Run each LED's wires straight back to the board on its own side
@@ -290,6 +308,8 @@ conda activate base
 python cad/huewheel.py      # parts: cad/stl (print-ready), cad/step (untracked)
 python cad/assemble.py      # interference check, cad/build meshes, cad/step/assembly.step
 python cad/printcheck.py    # supportless-print check
+python cad/test/insert_test.py   # insert test block: cad/test/insert_test.stl
+python cad/printcheck.py cad/test/insert_test.stl
 xvfb-run -a python cad/render.py   # docs/renders
 python cad/view.py          # interactive 3D viewer of the assembly
 ```

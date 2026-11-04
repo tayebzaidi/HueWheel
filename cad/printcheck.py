@@ -1,6 +1,6 @@
 """Supportless-print check for cad/stl/*.stl (needs trimesh, shapely and rtree).
 
-    python cad/printcheck.py [part ...]
+    python cad/printcheck.py [part ... | path/to/file.stl ...]
 
 Slices each part as it sits on the bed, layer by layer. Anything in a layer that is
 more than a 45 degree step out from the layer below has nothing to print on. Those
@@ -104,7 +104,8 @@ def bridge_ok(region, support):
 
 
 def check(name):
-    mesh = trimesh.load(ROOT / "stl" / f"{name}.stl")
+    path = Path(name) if name.endswith(".stl") else ROOT / "stl" / f"{name}.stl"
+    mesh = trimesh.load(path)
     top = mesh.bounds[1][2]
     prev = None
     prev_ledges = []      # (region, chain depth) of the layer below

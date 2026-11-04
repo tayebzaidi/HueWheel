@@ -22,7 +22,7 @@ GROUPS = {  # checkbox label: parts
     "Wheels": ["wheel_hours", "wheel_minutes"],
     "Encoders": ["enc_l", "enc_r"],
     "Electronics": ["mcu", "switch", "leds"],
-    "Screws + nuts": ["screws", "nuts"],
+    "Screws + inserts": ["screws", "inserts"],
 }
 AXES = {"X": (1, 0, 0), "Y": (0, 1, 0), "Z": (0, 0, 1)}
 

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from build123d import (
     Align, Axis, Box, BuildLine, BuildSketch, Circle, Cone, Cylinder, FontStyle,
-    Line, Plane, Pos, Rectangle, RectangleRounded, RegularPolygon, Rot, Sketch, Text,
+    Line, Plane, Pos, Rectangle, RectangleRounded, Rot, Sketch, Text,
     ThreePointArc, chamfer, export_step, export_stl, extrude, fillet, make_face,
 )
 
@@ -62,16 +62,20 @@ SCREW_XY = 36.0
 SCREW_L = 8.0          # M3 x 8 button head, Mywish kit
 SCREW_HEAD_D, SCREW_HEAD_H = 5.7, 1.65  # ISO 7380 nominal
 CBORE_D, CBORE_DEPTH = 6.2, 2.4
-NUT_AF, NUT_H = 5.5, 2.4       # ISO 4032 M3 nut, nominal
-NUT_FIT = 0.2          # slot clearance across the flats
-NUT_SLOT_H = 2.6
-NUT_Z = PLATE_T + 2.6  # underside of the nut: 2.6 mm shelf below it; keeps the slot roof on a 0.2 mm layer line
-BORE_D = 3.4           # screw clearance through the boss
-BORE_TOP = PLATE_T + 8.5
-LED_D = 3.0            # 3 mm through-hole LED; set to 5.0 for 5 mm LEDs
-LED_LEN = 5.3          # base flange to dome tip
-LED_TIP_BACK = 12.0    # dome tip's distance back from where the slope meets the hump
-LED_HOLDER_L = 4.5
+BORE_D = 3.4           # screw clearance through the plate
+# M3 heat-set inserts, pressed into the underside of each corner boss ("M3x6x4.2" in the kit)
+INSERT_D, INSERT_L = 4.2, 6.0   # knurl outside diameter, length
+INSERT_HOLE_D = 4.0    # pick this from the test block: cad/test/insert_test.py
+INSERT_HOLE_L = 7.5    # room above the insert for displaced plastic and the screw tip
+INSERT_CHAMFER = 0.4   # lead-in at the hole mouth
+LED_D = 5.0            # 5 mm through-hole LED; 3.0 for 3 mm LEDs
+LED_LEN = 8.6          # base flange to dome tip (5.3 for 3 mm LEDs)
+LED_BORE = LED_D + 0.3
+LED_TIP_BACK = 20.0    # dome tip's distance back from where the slope meets the hump
+LED_SLOT_TOP = -1.0   # slot walls end this far behind the dome tip
+LED_SLOT_DEPTH = 4.0  # how far the slot walls reach in from the LED axis (LED radius + 1.5)
+LIP_H, LIP_W = 2.0, 1.2    # locating lip on the plate, just inside the shell wall
+LIP_GAP = 0.4          # clearance from the lip to the shell
 SW_Y, SW_Z = -15.0, 10.25  # E-Switch EG1201A centre on the right wall
 
 # Printability: everything prints without supports. Hanging features are flat-bottomed
@@ -81,7 +85,7 @@ CRADLE_TOP = AXIS_Z + 3.9  # plate U-cradles stop here; the shell caps them
 CAP_GAP = 0.2          # shell underside above the cradle tops
 ENC_CAP_Z = AXIS_Z + 7.2   # shell underside above the encoder bodies (0.5 mm clear)
 BULK_X0 = WHEEL_IN + WHEEL_W + 0.5  # inner face of the bulkhead over each encoder
-FIN_T = 2.4           # LED holder support fins (1.6 mm peeled off the bed on the third print)
+FIN_T = 2.4           # LED slot walls (1.6 mm peeled off the bed on the third print)
 RIB_T = 3.0           # front centre rib
 FOOT_W, FOOT_H = 1.5, 1.0  # flange on each side of the thin walls' first 1 mm, for bed grip
 
@@ -97,9 +101,14 @@ BORE_END = MOUNT_X - ENC_SHAFT_L - 0.5
 PITCH = 360.0 / N_POS
 
 
-def nut_hex(across_flats, height):
-    """Hexagonal prism with flats facing +/-Y, base at z=0."""
-    return extrude(RegularPolygon(across_flats / 3 ** 0.5, 6), amount=height)
+def insert_hole(x, y, z0, d=None):
+    """Heat-set insert hole opening downwards at z0 (the bed face): a lead-in chamfer,
+    the straight hole, then a 45 degree cone roof so nothing has to bridge."""
+    r = (d or INSERT_HOLE_D) / 2
+    h = INSERT_HOLE_L
+    hole = Pos(x, y, z0 - 0.01) * Cone(r + INSERT_CHAMFER, r, INSERT_CHAMFER + 0.01, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    hole += Pos(x, y, z0 - 0.01) * Cylinder(r, h + 0.01, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    return hole + Pos(x, y, z0 + h - 0.01) * Cone(r, 0, r, align=(Align.CENTER, Align.CENTER, Align.MIN))
 
 
 def bx(x0, x1, y0, y1, z0, z1):
@@ -179,7 +188,7 @@ def led_axis():
     uy, uz = p[0] + half, p[1] - PLINTH_TOP
     n = hypot(uy, uz)
     uy, uz = uy / n, uz / n
-    a = SHELL_R - 1.2 - (LED_D + 0.2) / 2  # keeps 1.2 mm of wall outside the bore
+    a = SHELL_R - 1.2 - LED_BORE / 2  # keeps 1.2 mm of wall outside the bore
     foot = (-a * sin(t), AXIS_Z + a * cos(t))
     tip = (foot[0] - LED_TIP_BACK * uy, foot[1] - LED_TIP_BACK * uz)
     return tip, (uy, uz)
@@ -190,6 +199,13 @@ def led_cyl(x, d, s0, s1):
     tip, u = led_axis()
     origin = (x, tip[0] + s0 * u[0], tip[1] + s0 * u[1])
     return Plane(origin=origin, x_dir=(1, 0, 0), z_dir=(0, u[0], u[1])) * Pos(0, 0, (s1 - s0) / 2) * Cylinder(d / 2, s1 - s0)
+
+
+def led_frame(s0=0.0):
+    """Plane on the LED axis at s0 from the dome tip: local z along the beam, local y
+    pointing away from the slope wall, into the shell."""
+    tip, u = led_axis()
+    return Plane(origin=(0, tip[0] + s0 * u[0], tip[1] + s0 * u[1]), x_dir=(1, 0, 0), z_dir=(0, u[0], u[1]))
 
 
 def body_solid(half, r, z_bottom):
@@ -264,26 +280,24 @@ def make_shell():
         # over the encoder body, out to the side wall: replaces the tilted deck ceiling
         shell += outer & bx(*sorted((s * (MOUNT_X - 0.25), s * HALF)), -HALF, HALF, ENC_CAP_Z, 100)
 
-    # LED holders on the inside of the front slope, one aimed up at each window.
-    # Two fins under each holder rise from the bed, so the holder never starts in mid
-    # air; the LED leads drop out between them.
-    tip, u = led_axis()
-    r_h = (LED_D + 2.6) / 2
-    g = r_h - 1.6  # half the gap between a holder's fins, where the leads drop out
-    y_far = tip[0] - LED_LEN * u[0] + r_h * u[1]  # holder's lowest end, edge furthest from the wall
+    # LED slots on the inside of the front slope, one aimed up at each window. Two
+    # walls rise from the bed beside each LED and join the front wall; the slot between
+    # them is open towards the inside of the shell, so the LED drops in from there and
+    # slides up until its base flange meets the step where the slot narrows.
+    w_flange, w_body = (LED_D + 1.1) / 2, LED_BORE / 2
     for s in (-1, 1):
         xc = s * (WHEEL_IN + WHEEL_OUT) / 2
-        shell += led_cyl(xc, LED_D + 2.6, -LED_LEN, -LED_LEN + LED_HOLDER_L) & outer
+        reach = led_frame() * Pos(0, (LED_SLOT_DEPTH - 50) / 2, (LED_SLOT_TOP - 200) / 2) * Box(
+            400, LED_SLOT_DEPTH + 50, LED_SLOT_TOP + 200)  # wall side of the slot, below its top
+        stop = led_frame(-LED_LEN) * Pos(0, 0, -100) * Box(400, 400, 200)  # below the flange seat
         for d in (-1, 1):
-            xf = sorted((xc + d * g, xc + d * (g + FIN_T)))  # thicker fins grow outward
-            fin = (bx(*xf, -HALF, y_far + 0.5, PLATE_T, tip[1]) + foot(*xf, -HALF, y_far + 0.5)) & outer
-            shell += fin - led_cyl(xc, LED_D + 1.1, -LED_LEN - 30, -LED_LEN)
-        # the holder's curved underside starts on a short flat bridge between the fins
-        z_low = tip[1] - LED_LEN * u[1] - r_h * u[0]
-        shell += bx(xc - g - 0.1, xc + g + 0.1, y_far - 0.4, y_far + 0.4,
-                    z_low - 0.6, z_low + 0.3) - led_cyl(xc, LED_D + 1.1, -LED_LEN - 30, -LED_LEN)
-        shell -= led_cyl(xc, LED_D + 0.2, -LED_LEN - 2, 1)
-        shell -= led_cyl(xc, LED_D + 1.1, -LED_LEN - 4, -LED_LEN)  # relief for the LED's base flange
+            xf = sorted((xc + d * w_flange, xc + d * (w_flange + FIN_T)))
+            xft = sorted((xc + d * w_flange, xc + d * (w_flange + FIN_T + FOOT_W)))  # foot flares outward only
+            wall = bx(*xf, -HALF, HALF, PLATE_T, 100) + bx(*xft, -HALF, HALF, PLATE_T, PLATE_T + FOOT_H)
+            step = bx(*sorted((xc + d * w_body, xc + d * w_flange)), -HALF, HALF, PLATE_T, 100) - stop
+            shell += (wall + step) & reach & outer
+        shell -= led_cyl(xc, LED_BORE, -LED_LEN - 2, 1)                    # groove in the slope wall
+        shell -= led_cyl(xc, LED_D + 1.1, -LED_LEN - 4, -LED_LEN)          # ...wider for the flange
 
     # thumb slots + reading windows
     for s in (-1, 1):
@@ -311,17 +325,36 @@ def make_shell():
     shell -= bx(-6.5, 6.5, HALF - WALL - 1, HALF + 1, PLATE_T - 1, PLATE_T + 10)
     shell -= bx(HALF - WALL - 1, HALF + 1, SW_Y - 4.5, SW_Y + 4.5, SW_Z - 2.25, SW_Z + 2.25)
 
-    # captive M3 nuts: each slides into its boss from inside the shell. The screw
-    # pulls the nut down onto the shelf below it, clamping the shell to the plate.
+    # M3 heat-set inserts, pressed in from the underside with the shell upside down
     for sx in (-1, 1):
         for sy in (-1, 1):
-            x, y = sx * SCREW_XY, sy * SCREW_XY
-            shell -= Pos(x, y, (PLATE_T - 1 + NUT_Z) / 2) * Cylinder(BORE_D / 2, NUT_Z - PLATE_T + 1)
-            shell -= Pos(x, y, NUT_Z) * nut_hex(NUT_AF + NUT_FIT, NUT_SLOT_H)
-            shell -= bridged_hole(x, y, NUT_Z + NUT_SLOT_H, BORE_TOP, NUT_AF + NUT_FIT, round_below=False)
-            mouth = sorted((x, sx * (SCREW_XY - 6)))
-            shell -= bx(*mouth, y - (NUT_AF + NUT_FIT) / 2, y + (NUT_AF + NUT_FIT) / 2, NUT_Z, NUT_Z + NUT_SLOT_H)
+            shell -= insert_hole(sx * SCREW_XY, sy * SCREW_XY, PLATE_T)
     return shell
+
+
+def plate_lip(shell):
+    """Low lip just inside the shell wall that seats the shell on the plate. It runs
+    along each side between the corner bosses and steps around every shell wall, foot
+    and fin that comes down to the plate there, with LIP_GAP clearance."""
+    o = HALF - WALL - LIP_GAP
+    i = o - LIP_W
+    e = SCREW_XY - 4.5 - LIP_GAP          # stop short of the corner bosses
+    z0, z1 = PLATE_T, PLATE_T + LIP_H
+    lip = (bx(-e, e, -o, -i, z0, z1) + bx(-e, e, i, o, z0, z1)
+           + bx(-o, -i, -e, e, z0, z1) + bx(i, o, -e, e, z0, z1))
+    lip -= bx(-8.0, 8.0, i - 1, o + 1, z0 - 1, z1 + 1)  # rear: the USB-C plug passes over here
+    # shell features inside the wall at lip height (the wall itself is left out)
+    near = shell & bx(-(HALF - WALL - 0.01), HALF - WALL - 0.01, -(HALF - WALL - 0.01), HALF - WALL - 0.01,
+                      z0 - 0.01, z1 + 0.5)
+    # raised copies too, so the cut runs the full lip height above the 1 mm wall feet
+    for dz in (0.0, 0.9, 1.8):
+        for dx, dy in ((LIP_GAP, 0), (-LIP_GAP, 0), (0, LIP_GAP), (0, -LIP_GAP)):
+            lip -= Pos(dx, dy, dz) * near
+    keep = [s for s in lip.solids() if s.volume > 4 * LIP_W * LIP_H]  # drop slivers
+    out = keep[0]
+    for s in keep[1:]:
+        out += s
+    return out
 
 
 def make_plate():
@@ -457,26 +490,24 @@ def make_dummies():
             one += p * Pos(0, 0, head_top + SCREW_L / 2) * Cylinder(1.5, SCREW_L)
             screws = one if screws is None else screws + one
     out["screws"] = screws
-    out["nuts"] = nut_set(0.0)
+    inserts = None
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            one = Pos(sx * SCREW_XY, sy * SCREW_XY, PLATE_T) * Cylinder(
+                INSERT_HOLE_D / 2, INSERT_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
+            one -= Pos(sx * SCREW_XY, sy * SCREW_XY, PLATE_T) * Cylinder(
+                1.5, INSERT_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
+            inserts = one if inserts is None else inserts + one
+    out["inserts"] = inserts  # drawn at the hole size, as they sit once pressed in
     leds = None
     for s in (-1, 1):
         xc = s * (WHEEL_IN + WHEEL_OUT) / 2
         one = led_cyl(xc, LED_D, -LED_LEN, 0) + led_cyl(xc, LED_D + 0.8, -LED_LEN - 1, -LED_LEN)
         for dx in (-1.27, 1.27):
-            one += led_cyl(xc + dx, 0.5, -LED_LEN - 12, -LED_LEN - 1)
+            one += led_cyl(xc + dx, 0.5, -LED_LEN - 5, -LED_LEN - 1)  # leads, before bending
         leds = one if leds is None else leds + one
     out["leds"] = leds
     return out
-
-
-def nut_set(inboard):
-    """The four nuts, each slid `inboard` mm back along its slot."""
-    nuts = None
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            one = Pos(sx * (SCREW_XY - inboard), sy * SCREW_XY, NUT_Z + 0.02) * nut_hex(NUT_AF, NUT_H)
-            nuts = one if nuts is None else nuts + one
-    return nuts
 
 
 def switch_actuator(offset):
@@ -487,9 +518,10 @@ def switch_actuator(offset):
 
 
 def build():
+    shell = make_shell()
     return {
-        "plate": make_plate(),
-        "shell": make_shell(),
+        "plate": make_plate() + plate_lip(shell),
+        "shell": shell,
         "wheel_hours": make_wheel(+1, HOURS),
         "wheel_minutes": make_wheel(-1, MINUTES),
     }
