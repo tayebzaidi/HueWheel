@@ -11,7 +11,7 @@ from pathlib import Path
 
 from build123d import (
     Align, Axis, Box, BuildLine, BuildSketch, Circle, Cone, Cylinder, FontStyle,
-    Line, Plane, Pos, Rectangle, RectangleRounded, Rot, Sketch, Text,
+    Line, Plane, Pos, Rectangle, RectangleRounded, RegularPolygon, Rot, Sketch, Text,
     ThreePointArc, chamfer, export_step, export_stl, extrude, fillet, make_face,
 )
 
@@ -62,12 +62,12 @@ SCREW_XY = 36.0
 SCREW_L = 8.0          # M3 x 8 button head, Mywish kit
 SCREW_HEAD_D, SCREW_HEAD_H = 5.7, 1.65  # ISO 7380 nominal
 CBORE_D, CBORE_DEPTH = 6.2, 2.4
-BORE_D = 3.4           # screw clearance through the plate
-# M3 heat-set inserts, pressed into the underside of each corner boss ("M3x6x4.2" in the kit)
-INSERT_D, INSERT_L = 4.2, 6.0   # knurl outside diameter, length
-INSERT_HOLE_D = 4.0    # pick this from the test block: cad/test/insert_test.py
-INSERT_HOLE_L = 7.5    # room above the insert for displaced plastic and the screw tip
-INSERT_CHAMFER = 0.4   # lead-in at the hole mouth
+NUT_AF, NUT_H = 5.5, 2.4       # ISO 4032 M3 nut, nominal
+NUT_FIT = 0.2          # slot clearance across the flats
+NUT_SLOT_H = 2.4       # one 0.2 mm layer less than the 2.6 that printed loose; the bridged roof sags a little
+NUT_Z = PLATE_T + 2.6  # underside of the nut: 2.6 mm shelf below it; keeps the slot roof on a 0.2 mm layer line
+BORE_D = 3.4           # screw clearance through the plate and boss
+BORE_TOP = PLATE_T + 8.5
 LED_D = 5.0            # 5 mm through-hole LED; 3.0 for 3 mm LEDs
 LED_LEN = 8.6          # base flange to dome tip (5.3 for 3 mm LEDs)
 LED_BORE = LED_D + 0.3
@@ -101,14 +101,9 @@ BORE_END = MOUNT_X - ENC_SHAFT_L - 0.5
 PITCH = 360.0 / N_POS
 
 
-def insert_hole(x, y, z0, d=None):
-    """Heat-set insert hole opening downwards at z0 (the bed face): a lead-in chamfer,
-    the straight hole, then a 45 degree cone roof so nothing has to bridge."""
-    r = (d or INSERT_HOLE_D) / 2
-    h = INSERT_HOLE_L
-    hole = Pos(x, y, z0 - 0.01) * Cone(r + INSERT_CHAMFER, r, INSERT_CHAMFER + 0.01, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    hole += Pos(x, y, z0 - 0.01) * Cylinder(r, h + 0.01, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    return hole + Pos(x, y, z0 + h - 0.01) * Cone(r, 0, r, align=(Align.CENTER, Align.CENTER, Align.MIN))
+def nut_hex(across_flats, height):
+    """Hexagonal prism with flats facing +/-Y, base at z=0."""
+    return extrude(RegularPolygon(across_flats / 3 ** 0.5, 6), amount=height)
 
 
 def bx(x0, x1, y0, y1, z0, z1):
@@ -325,10 +320,16 @@ def make_shell():
     shell -= bx(-6.5, 6.5, HALF - WALL - 1, HALF + 1, PLATE_T - 1, PLATE_T + 10)
     shell -= bx(HALF - WALL - 1, HALF + 1, SW_Y - 4.5, SW_Y + 4.5, SW_Z - 2.25, SW_Z + 2.25)
 
-    # M3 heat-set inserts, pressed in from the underside with the shell upside down
+    # captive M3 nuts: each slides into its boss from inside the shell. The screw
+    # pulls the nut down onto the shelf below it, clamping the shell to the plate.
     for sx in (-1, 1):
         for sy in (-1, 1):
-            shell -= insert_hole(sx * SCREW_XY, sy * SCREW_XY, PLATE_T)
+            x, y = sx * SCREW_XY, sy * SCREW_XY
+            shell -= Pos(x, y, (PLATE_T - 1 + NUT_Z) / 2) * Cylinder(BORE_D / 2, NUT_Z - PLATE_T + 1)
+            shell -= Pos(x, y, NUT_Z) * nut_hex(NUT_AF + NUT_FIT, NUT_SLOT_H)
+            shell -= bridged_hole(x, y, NUT_Z + NUT_SLOT_H, BORE_TOP, NUT_AF + NUT_FIT, round_below=False)
+            mouth = sorted((x, sx * (SCREW_XY - 6)))
+            shell -= bx(*mouth, y - (NUT_AF + NUT_FIT) / 2, y + (NUT_AF + NUT_FIT) / 2, NUT_Z, NUT_Z + NUT_SLOT_H)
     return shell
 
 
@@ -490,15 +491,7 @@ def make_dummies():
             one += p * Pos(0, 0, head_top + SCREW_L / 2) * Cylinder(1.5, SCREW_L)
             screws = one if screws is None else screws + one
     out["screws"] = screws
-    inserts = None
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            one = Pos(sx * SCREW_XY, sy * SCREW_XY, PLATE_T) * Cylinder(
-                INSERT_HOLE_D / 2, INSERT_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
-            one -= Pos(sx * SCREW_XY, sy * SCREW_XY, PLATE_T) * Cylinder(
-                1.5, INSERT_L, align=(Align.CENTER, Align.CENTER, Align.MIN))
-            inserts = one if inserts is None else inserts + one
-    out["inserts"] = inserts  # drawn at the hole size, as they sit once pressed in
+    out["nuts"] = nut_set(0.0)
     leds = None
     for s in (-1, 1):
         xc = s * (WHEEL_IN + WHEEL_OUT) / 2
@@ -508,6 +501,16 @@ def make_dummies():
         leds = one if leds is None else leds + one
     out["leds"] = leds
     return out
+
+
+def nut_set(inboard):
+    """The four nuts, each slid `inboard` mm back along its slot."""
+    nuts = None
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            one = Pos(sx * (SCREW_XY - inboard), sy * SCREW_XY, NUT_Z + 0.02) * nut_hex(NUT_AF, NUT_H - 0.04)
+            nuts = one if nuts is None else nuts + one
+    return nuts
 
 
 def switch_actuator(offset):

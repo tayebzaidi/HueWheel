@@ -29,7 +29,7 @@ def main():
 
     bad = 0
     for (na, a), (nb, b) in combinations(parts.items(), 2):
-        if {na, nb} <= {"enc_l", "enc_r", "mcu", "switch", "screws", "inserts", "leds"}:
+        if {na, nb} <= {"enc_l", "enc_r", "mcu", "switch", "screws", "nuts", "leds"}:
             continue
         v = overlap(a, b)
         if v > 0.01:
@@ -43,12 +43,14 @@ def main():
         print(f"switch slider at {off:+.1f} mm vs shell: {v:.2f} mm3")
         bad += v > 0.01
 
-    # the screw must reach well into the insert without bottoming out in its hole
+    # each nut must slide all the way in from the mouth of its slot
+    worst = max(overlap(hw.nut_set(d), parts["shell"]) for d in (0.5, 1, 2, 3, 4, 5, 6, 8))
+    print(f"nut slide-in: worst clash {worst:.2f} mm3")
+    bad += worst > 0.01
     screw_top = hw.CBORE_DEPTH + hw.SCREW_L
-    grip = min(screw_top, hw.PLATE_T + hw.INSERT_L) - hw.PLATE_T
-    room = hw.PLATE_T + hw.INSERT_HOLE_L - screw_top
-    print(f"screw grips {grip:.1f} of {hw.INSERT_L:.1f} mm of insert thread, tip {room:.1f} mm short of the hole end")
-    bad += grip < 4.0 or room < 0.3
+    print(f"screw tip {screw_top - (hw.NUT_Z + hw.NUT_H):.1f} mm past nut, "
+          f"{hw.BORE_TOP - screw_top:.1f} mm short of bore end")
+    bad += screw_top < hw.NUT_Z + hw.NUT_H or screw_top > hw.BORE_TOP
 
     # each LED drops into its slot from inside the shell: straight out from the slope
     # wall, then down through the open bottom. Pushed further up the slot, it must stop.
@@ -63,7 +65,7 @@ def main():
 
     # assembly paths, largest clash along each path
     pairs = {"wheel+encoder drop-in": (["wheel_hours", "wheel_minutes", "enc_l", "enc_r"], ["plate", "mcu"]),
-             "shell drop-on": (["shell", "switch", "inserts", "leds"], ["plate", "mcu", "enc_l", "enc_r", "wheel_hours", "wheel_minutes"])}
+             "shell drop-on": (["shell", "switch", "nuts", "leds"], ["plate", "mcu", "enc_l", "enc_r", "wheel_hours", "wheel_minutes"])}
     for label, (moving, fixed) in pairs.items():
         worst = 0.0
         for dz in (1, 2, 4, 8, 12, 16, 24, 32, 45, 60):
