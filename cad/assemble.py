@@ -18,16 +18,36 @@ def overlap(a, b):
     return sum(s.volume for s in r.solids()) if hasattr(r, "solids") else r.volume
 
 
+def shaft_d(s):
+    """Encoder shaft (s=+1 right), D-flat at the tip, shifted FIT onto the bore's flat."""
+    from build123d import Rot
+    tip = s * (hw.MOUNT_X - hw.ENC_SHAFT_L)
+    root_x = s * (hw.MOUNT_X - hw.ENC_BUSH_L)
+    r = hw.ENC_SHAFT_D / 2
+    shaft = hw.cyl_x(*sorted((tip, root_x)), 2 * r, z=0)
+    flat = hw.ENC_SHAFT_FLAT - r
+    shaft -= hw.bx(*sorted((tip - s, tip + s * hw.ENC_FLAT_L)), -5, 5, flat, 5)
+    return Pos(0, 0, hw.AXIS_Z) * Rot(hw.CLOCK_OFFSET_DEG, 0, 0) * Pos(0, 0, hw.FIT) * shaft
+
+
 def main():
     root = Path(__file__).parent
     build = root / "build"
     build.mkdir(exist_ok=True)
     parts = hw.main()
+
+    # D shaft seated on the bore's flat: only the crush ribs may touch it, each by RIB_I
+    bad = 0
+    for name, s in (("wheel_hours", -1), ("wheel_minutes", 1)):
+        shaft = shaft_d(s)
+        bite = overlap(parts[name], shaft)
+        free = overlap(parts[name] - hw.wheel_bore(-s, 0), shaft)
+        expect = len(hw.RIB_ANGLES) * hw.RIB_W * hw.RIB_I * (hw.ENC_FLAT_L - 2)
+        print(f"{name} on shaft: ribs bite {bite:.2f} mm3 (about {expect:.1f}), bore without ribs {free:.2f} mm3")
+        bad += free > 0.01 or not 0.4 * expect < bite < 1.5 * expect
     parts["wheel_hours"] = hw.spin(parts["wheel_hours"], 7)            # "07"
     parts["wheel_minutes"] = hw.spin(parts["wheel_minutes"], 6)        # "30"
     parts.update(hw.make_dummies())
-
-    bad = 0
     for (na, a), (nb, b) in combinations(parts.items(), 2):
         if {na, nb} <= {"enc_l", "enc_r", "mcu", "switch", "screws", "nuts", "leds"}:
             continue

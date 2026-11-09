@@ -50,6 +50,13 @@ ENC_BODY_L = 6.5       # mounting face to rear of body
 ENC_PIN_L = 3.7        # rear-facing pins, row 7.5 mm below the axle
 ENC_LEDGE = 4.0        # how far the floor runs under the body; pins hang past it
 FIT = 0.15             # radial clearance on the D bore
+# Crush ribs in the D bore: three ridges that the shaft squashes as the wheel goes on,
+# for a tight fit that still pulls off. One sits opposite the flat and pushes the shaft's
+# flat onto the bore's, so the wheel has no turning play. RIB_I is how far each rib
+# reaches into the shaft once seated; pick it with cad/test/rib_test.stl.
+RIB_I = 0.2
+RIB_W = 1.0
+RIB_ANGLES = (180.0, 105.0, -105.0)  # degrees from the flat; the round wall starts at +/-60
 CLOCK_OFFSET_DEG = 0.0 # rotate the D bore if numerals sit off-centre at a click
 
 WINDOW_PHI = 50.0      # reading window, degrees forward of vertical
@@ -397,19 +404,45 @@ def make_plate():
     return plate
 
 
-def d_bore(x0, x1):
+def d_bore(x0, x1, rib=None):
+    """D-shaped bore along X with crush ribs reaching `rib` mm into the seated shaft
+    (RIB_I by default; 0 for none). The lead-in for the ribs is the cone the bore is
+    entered through (see make_wheel)."""
+    rib = RIB_I if rib is None else rib
     r = ENC_SHAFT_D / 2 + FIT
     flat = ENC_SHAFT_FLAT - ENC_SHAFT_D / 2 + FIT
     c = cyl_x(x0, x1, 2 * r)
-    keep = Rot(CLOCK_OFFSET_DEG, 0, 0) * bx(x0 - 1, x1 + 1, -r - 1, r + 1, -r - 1, flat)
-    keep = Pos(0, 0, AXIS_Z) * keep
-    return c & keep
+    keep = bx(x0 - 1, x1 + 1, -r - 1, r + 1, -r - 1, flat)
+    bore = c & (Pos(0, 0, AXIS_Z) * Rot(CLOCK_OFFSET_DEG, 0, 0) * keep)
+    if rib > 0:
+        ribs = None
+        for a in RIB_ANGLES:
+            # with its flat seated on the bore's flat, the shaft sits FIT off-centre
+            # towards the flat, so its surface is at this radius in direction a
+            surface = ENC_SHAFT_D / 2 + FIT * cos(radians(a))
+            one = Rot(a, 0, 0) * bx(x0 - 1, x1 + 1, -RIB_W / 2, RIB_W / 2, surface - rib, r + 0.3)
+            ribs = one if ribs is None else ribs + one
+        bore -= Pos(0, 0, AXIS_Z) * Rot(CLOCK_OFFSET_DEG, 0, 0) * ribs
+    return bore
 
 
 def _text(label):
     if Path(FONT_PATH).exists():
         return Text(label, font_size=TEXT_SIZE, font_path=FONT_PATH)
     return Text(label, font_size=TEXT_SIZE, font=FONT, font_style=FontStyle.BOLD)
+
+
+def wheel_bore(inner_sign, rib=None):
+    """Everything cut for the encoder in a wheel: the bushing pocket from the outer face,
+    a 45 degree cone down to the D-flat, and the ribbed D bore."""
+    xo = -inner_sign * WHEEL_OUT
+    pocket_floor = MOUNT_X - ENC_SHAFT_L + ENC_FLAT_L - 0.5  # round part of the shaft stays clear of the D bore
+    cut = cyl_x(-inner_sign * pocket_floor, xo + inner_sign * -1, ENC_BUSH_D + 1.5)
+    # the cone keeps the pocket's roof printable (the wheel prints outer face down) and
+    # is the lead-in for the crush ribs
+    r0, r1 = (ENC_BUSH_D + 1.5) / 2, ENC_SHAFT_FLAT - ENC_SHAFT_D / 2 + FIT
+    cut += Pos(-inner_sign * (pocket_floor - (r0 - r1) / 2), 0, AXIS_Z) * Rot(0, inner_sign * 90, 0) * Cone(r0, r1, r0 - r1)
+    return cut + d_bore(*sorted((-inner_sign * BORE_END, -inner_sign * (pocket_floor + 0.5))), rib)
 
 
 def make_wheel(inner_sign, labels):
@@ -434,14 +467,7 @@ def make_wheel(inner_sign, labels):
     # stub boss that rests in the centre cradle
     w += cyl_x(xi, -inner_sign * 0.3, 7.0)
 
-    # bushing clearance + D bore
-    pocket_floor = MOUNT_X - ENC_SHAFT_L + ENC_FLAT_L - 0.5  # round part of the shaft stays clear of the D bore
-    w -= cyl_x(-inner_sign * pocket_floor, xo + inner_sign * -1, ENC_BUSH_D + 1.5)
-    # 45 degree cone from the pocket floor down to the D-flat, so the pocket's roof
-    # (the wheel prints outer face down) needs no bridging
-    r0, r1 = (ENC_BUSH_D + 1.5) / 2, ENC_SHAFT_FLAT - ENC_SHAFT_D / 2 + FIT
-    w -= Pos(-inner_sign * (pocket_floor - (r0 - r1) / 2), 0, AXIS_Z) * Rot(0, inner_sign * 90, 0) * Cone(r0, r1, r0 - r1)
-    w -= d_bore(*sorted((-inner_sign * BORE_END, -inner_sign * (pocket_floor + 0.5))))
+    w -= wheel_bore(inner_sign)
 
     # engraved numerals, labels[i] sits at phi = i * PITCH
     xc = (span[0] + span[1]) / 2

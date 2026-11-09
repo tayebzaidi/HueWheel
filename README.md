@@ -67,8 +67,28 @@ you need them. These are estimates, so check them at checkout.
 
 ### 2. Print the parts
 
-**Print one wheel first** and try it on an encoder. The fit comes from the datasheet and hasn't
-been tried on a real part. If it fits, print the rest from [`cad/stl`](cad/stl):
+**Print the rib test piece first:** [`cad/test/rib_test.stl`](cad/test/rib_test.stl), at
+0.12 mm like the wheels, as exported. Each wheel grips its encoder shaft with three small crush
+ribs in the D-shaped bore, which the shaft squashes as the wheel goes on. The test piece has
+three hubs with ribs reaching 0.1, 0.2 and 0.3 mm into the shaft, each cut exactly like a
+wheel's bore. Push an encoder shaft into each hub from the bottom, flat first, then pull it out.
+Choose the tightest one that goes fully on by hand without cracking and has no wobble or
+turning play. Set `RIB_I` in `cad/huewheel.py` to that size and re-export. The test piece is not
+part of the build.
+
+Two more test pieces, both at 0.2 mm layers as exported. Neither is part of the build:
+
+- [`cad/test/nut_test.stl`](cad/test/nut_test.stl): three copies of the shell's captive-nut
+  boss, all with 2.6 mm high slots. The slot is 0.0, 0.1 or 0.2 mm wider than the nut across
+  the flats, engraved on the back. Pick the tightest one the nut slides into and stays in, and
+  set `NUT_FIT` and `NUT_SLOT_H` to match.
+- [`cad/test/clamp_test.stl`](cad/test/clamp_test.stl): three copies of the plate's encoder
+  socket, with uprights 1.5, 2.0 and 2.5 mm thick (the plate uses 3.0). Seat an encoder in
+  each, put its own washer and nut on the bushing, and tighten. This shows how thin the upright
+  must be for the nut to clamp it, and checks the socket fit.
+
+Then print one wheel and try it on an encoder before printing the rest from
+[`cad/stl`](cad/stl):
 
 | Part | File | Layer height | Bambu Studio profile |
 |---|---|---|---|
@@ -231,7 +251,8 @@ With the log still open, and everything still loose on the bench:
    it towards the window until its rim stops at the step where the slot narrows. Fix it with a
    dab of hot glue and bend the leads back towards the rear.
    [Picture of the path](docs/renders/led_insert.png).
-4. Press each wheel onto its encoder shaft: hours on the left, minutes on the right.
+4. Press each wheel onto its encoder shaft, flat first: hours on the left, minutes on the right.
+   It should take a firm push. To take it apart, pull the wheel straight off.
 5. Lower each wheel and encoder into the cradles. The bushing goes in the outer U-slot, the stub
    boss in the centre one, and the encoder body in its socket.
 6. Slide an M3 nut into the slot in each corner block from the inside, with the flats against
@@ -298,6 +319,10 @@ conda activate base
 python cad/huewheel.py      # parts: cad/stl (print-ready), cad/step (untracked)
 python cad/assemble.py      # interference check, cad/build meshes, cad/step/assembly.step
 python cad/printcheck.py    # supportless-print check
+python cad/test/rib_test.py # crush-rib test piece: cad/test/rib_test.stl
+python cad/printcheck.py cad/test/rib_test.stl
+python cad/test/nut_test.py   # nut slot test: cad/test/nut_test.stl
+python cad/test/clamp_test.py # encoder clamp test: cad/test/clamp_test.stl
 xvfb-run -a python cad/render.py   # docs/renders
 python cad/view.py          # interactive 3D viewer of the assembly
 ```
