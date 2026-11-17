@@ -19,7 +19,7 @@ from build123d import Align, Plane, Pos, Text, export_stl, extrude
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import huewheel as hw  # noqa: E402
 
-FITS = (0.0, 0.1, 0.2)
+FITS = (0.0, 0.1, 0.2)  # done: 0.0 was picked and is now NUT_FIT
 SLOT_H = 2.6
 FRONT = 4.5         # hole centre to the open face, as in the shell (36 - 31.5)
 BACK = 5.0

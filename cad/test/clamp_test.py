@@ -23,7 +23,7 @@ from build123d import Align, Plane, Text, export_stl, extrude
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import huewheel as hw  # noqa: E402
 
-THICKNESS = (1.5, 2.0, 2.5)  # the plate's upright is 3.0 today
+THICKNESS = (1.5, 2.0, 2.5)  # done: 2.0 was picked and is now ENC_UPRIGHT_T
 FRONT = 9.0           # slab in front of the upright, room for the label and the nut
 SPACING = 22.0        # socket centres along Y
 LABEL_SIZE = 4.0

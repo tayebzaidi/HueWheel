@@ -70,22 +70,23 @@ you need them. These are estimates, so check them at checkout.
 **Print the rib test piece first:** [`cad/test/rib_test.stl`](cad/test/rib_test.stl), at
 0.12 mm like the wheels, as exported. Each wheel grips its encoder shaft with three small crush
 ribs in the D-shaped bore, which the shaft squashes as the wheel goes on. The test piece has
-three hubs with ribs reaching 0.1, 0.2 and 0.3 mm into the shaft, each cut exactly like a
-wheel's bore. Push an encoder shaft into each hub from the bottom, flat first, then pull it out.
-Choose the tightest one that goes fully on by hand without cracking and has no wobble or
-turning play. Set `RIB_I` in `cad/huewheel.py` to that size and re-export. The test piece is not
-part of the build.
+five hubs, each a full wheel thick and cut exactly like a wheel's bore, with ribs reaching
+-0.15, -0.10, -0.05, 0.00 and 0.05 mm into the shaft. A negative size means the rib stops short
+of the shaft in the model, but printed holes come out slightly small, so it can still grip.
+(0.1, 0.2 and 0.3 were all too tight in the first round.) Push an encoder shaft into each hub
+from the bottom, flat first, then pull it out. Choose the tightest one that goes fully on by
+hand without cracking and has no wobble or turning play. Set `RIB_I` in `cad/huewheel.py` to
+that size and re-export. The test piece is not part of the build.
 
-Two more test pieces, both at 0.2 mm layers as exported. Neither is part of the build:
+Two earlier test pieces are done, and their results are already in the model. Neither is part
+of the build:
 
-- [`cad/test/nut_test.stl`](cad/test/nut_test.stl): three copies of the shell's captive-nut
-  boss, all with 2.6 mm high slots. The slot is 0.0, 0.1 or 0.2 mm wider than the nut across
-  the flats, engraved on the back. Pick the tightest one the nut slides into and stays in, and
-  set `NUT_FIT` and `NUT_SLOT_H` to match.
-- [`cad/test/clamp_test.stl`](cad/test/clamp_test.stl): three copies of the plate's encoder
-  socket, with uprights 1.5, 2.0 and 2.5 mm thick (the plate uses 3.0). Seat an encoder in
-  each, put its own washer and nut on the bushing, and tighten. This shows how thin the upright
-  must be for the nut to clamp it, and checks the socket fit.
+- [`cad/test/nut_test.stl`](cad/test/nut_test.stl): the shell's captive-nut boss with slots
+  0.0, 0.1 or 0.2 mm wider than the nut. 0.0 won, with a moderate press fit, so `NUT_FIT` is
+  0.0 and `NUT_SLOT_H` is 2.6.
+- [`cad/test/clamp_test.stl`](cad/test/clamp_test.stl): the plate's encoder socket with
+  1.5, 2.0 and 2.5 mm uprights, clamped by the encoder's own washer and nut. All three worked
+  and 2.0 was the favourite, so `ENC_UPRIGHT_T` is 2.0.
 
 Then print one wheel and try it on an encoder before printing the rest from
 [`cad/stl`](cad/stl):
@@ -132,8 +133,8 @@ reasonably well should work.
   0.5 mm and the cradle tops by 0.2 mm, so sand or trim any droop.
 - **The square opening above each screw hole and nut slot** should be clear. Pick out any
   strings, but don't drill the layers out, because the screw passes through the square.
-- **Each M3 nut** should slide all the way into its slot. The slot is 2.4 mm tall, the same as
-  the nut, so a snug push is expected. If one won't go, file the slot roof lightly.
+- **Each M3 nut** should slide all the way into its slot. The slot is 2.6 mm tall and exactly
+  as wide as the nut, so expect a moderate press. If one won't go, file the slot sides lightly.
 - **The low lip around the edge of the plate** should let the shell drop on without forcing.
 - **Each LED slot** inside the front slope should be clear between its two walls, with a small
   step near the top where the slot narrows.
@@ -251,10 +252,16 @@ With the log still open, and everything still loose on the bench:
    it towards the window until its rim stops at the step where the slot narrows. Fix it with a
    dab of hot glue and bend the leads back towards the rear.
    [Picture of the path](docs/renders/led_insert.png).
-4. Press each wheel onto its encoder shaft, flat first: hours on the left, minutes on the right.
-   It should take a firm push. To take it apart, pull the wheel straight off.
-5. Lower each wheel and encoder into the cradles. The bushing goes in the outer U-slot, the stub
-   boss in the centre one, and the encoder body in its socket.
+4. Put the encoder's washer and nut on its bushing and run the nut on only until about 2 mm of
+   bushing is left between the washer and the encoder's face, enough for the plate's upright.
+   Then press the wheel onto the shaft, flat first: hours on the left, minutes on the right.
+   It should take a firm push. The wheel has to go on now, because once the encoder is clamped
+   there's no room to slide it onto the shaft.
+5. Lower each wheel and encoder into the cradles: the upright goes between the washer and the
+   encoder, the bushing into its U-slot, the stub boss into the centre cradle and the encoder
+   body into its socket. Snug the nut against the upright with a fingertip or a small flat
+   screwdriver through the 3.5 mm gap beside the wheel, so the encoder doesn't rattle. To take
+   it apart, loosen the nut, lift the wheel and encoder out together, and pull the wheel off.
 6. Slide an M3 nut into the slot in each corner block from the inside, with the flats against
    the slot walls. Add a small dab of hot glue at the slot mouth so it can't fall out, keeping
    glue out of the screw hole.

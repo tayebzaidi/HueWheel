@@ -1,9 +1,14 @@
 """Crush-rib test piece for the wheel's D bore.  conda run -n base python cad/test/rib_test.py
 
-Not a production part. Three hubs in one bar, each with the wheel's encoder bore cut
-exactly as in the wheels (pocket, cone lead-in, D bore) but with a different rib size:
-how far each rib reaches into the seated shaft. The size is engraved on the front.
-It opens through the top so you can see the shaft tip.
+Not a production part. Five hubs in one bar, each the full thickness of a wheel with its
+encoder bore cut exactly as in the wheels (pocket, cone lead-in, D bore) but with a
+different rib size: how far each rib reaches into the seated shaft. Negative means the
+rib stops short of the shaft on paper; printed holes come out a little small, so it may
+still touch. The size is engraved on the front. It opens through the top so you can see
+the shaft tip.
+
+Second round: on the first test 0.1, 0.2 and 0.3 were all too tight, so this one steps
+down from 0.05 in 0.05 mm steps.
 
 Print it as exported (bed face down, like the wheels' outer face), no supports, at the
 wheels' layer height. Push an encoder shaft into each hub from the bed side, flat
@@ -18,11 +23,11 @@ from build123d import Align, Plane, Pos, Rot, Text, export_stl, extrude
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import huewheel as hw  # noqa: E402
 
-RIBS = (0.1, 0.2, 0.3)
+RIBS = (-0.15, -0.10, -0.05, 0.0, 0.05)
 HUB = 16.0          # hub width around the bore
 X_TOP = hw.BORE_END + 0.1   # the bore runs out through the top
-X_BED = 14.0        # inside the wheel's bushing pocket, so the cone lead-in is included
-LABEL_SIZE = 3.6
+X_BED = hw.WHEEL_OUT  # the wheel's outer face, so the pocket and cone lead-in are included
+LABEL_SIZE = 3.2
 LABEL_DEPTH = 0.5
 
 
@@ -39,7 +44,7 @@ def make_piece():
         hub = Pos(0, 0, X_BED) * Rot(0, 90, 0) * Pos(0, 0, -hw.AXIS_Z) * make_hub(rib)
         y = (i - (len(RIBS) - 1) / 2) * HUB
         hub = Pos(0, y, 0) * hub
-        label = Text(f"{rib:.1f}", font_size=LABEL_SIZE, font_path=hw.FONT_PATH,
+        label = Text(f"{rib:.2f}", font_size=LABEL_SIZE, font_path=hw.FONT_PATH,
                      align=(Align.CENTER, Align.CENTER))
         h = X_BED - X_TOP
         # engraved on the front face (-X once stood up)

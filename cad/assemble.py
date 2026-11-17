@@ -37,14 +37,16 @@ def main():
     parts = hw.main()
 
     # D shaft seated on the bore's flat: only the crush ribs may touch it, each by RIB_I
+    # (a negative RIB_I leaves them just short, so then nothing may touch it)
     bad = 0
     for name, s in (("wheel_hours", -1), ("wheel_minutes", 1)):
         shaft = shaft_d(s)
         bite = overlap(parts[name], shaft)
-        free = overlap(parts[name] - hw.wheel_bore(-s, 0), shaft)
-        expect = len(hw.RIB_ANGLES) * hw.RIB_W * hw.RIB_I * (hw.ENC_FLAT_L - 2)
+        free = overlap(parts[name] - hw.wheel_bore(-s, ribs=False), shaft)
+        expect = len(hw.RIB_ANGLES) * hw.RIB_W * max(hw.RIB_I, 0) * (hw.ENC_FLAT_L - 2)
         print(f"{name} on shaft: ribs bite {bite:.2f} mm3 (about {expect:.1f}), bore without ribs {free:.2f} mm3")
-        bad += free > 0.01 or not 0.4 * expect < bite < 1.5 * expect
+        ok = 0.4 * expect < bite < 1.5 * expect if expect else bite < 0.01
+        bad += free > 0.01 or not ok
     parts["wheel_hours"] = hw.spin(parts["wheel_hours"], 7)            # "07"
     parts["wheel_minutes"] = hw.spin(parts["wheel_minutes"], 6)        # "30"
     parts.update(hw.make_dummies())

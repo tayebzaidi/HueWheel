@@ -49,12 +49,16 @@ ENC_BODY_H = 13.8      # socket height (13.4 part + clearance), along Z
 ENC_BODY_L = 6.5       # mounting face to rear of body
 ENC_PIN_L = 3.7        # rear-facing pins, row 7.5 mm below the axle
 ENC_LEDGE = 4.0        # how far the floor runs under the body; pins hang past it
+ENC_UPRIGHT_T = 2.0    # plate upright the encoder nut clamps; 2.0 was the pick of the clamp test
+ENC_NUT_ENVELOPE = 13.0  # room kept clear around the encoder's washer and nut (not yet measured)
 FIT = 0.15             # radial clearance on the D bore
 # Crush ribs in the D bore: three ridges that the shaft squashes as the wheel goes on,
 # for a tight fit that still pulls off. One sits opposite the flat and pushes the shaft's
 # flat onto the bore's, so the wheel has no turning play. RIB_I is how far each rib
-# reaches into the shaft once seated; pick it with cad/test/rib_test.stl.
-RIB_I = 0.2
+# reaches into the shaft once seated (negative: the rib stops short of it, and the
+# shaft only meets it because printed holes come out a little small). 0.1, 0.2 and 0.3
+# were all too tight on the first rib test; pick it with cad/test/rib_test.stl.
+RIB_I = -0.05
 RIB_W = 1.0
 RIB_ANGLES = (180.0, 105.0, -105.0)  # degrees from the flat; the round wall starts at +/-60
 CLOCK_OFFSET_DEG = 0.0 # rotate the D bore if numerals sit off-centre at a click
@@ -70,8 +74,8 @@ SCREW_L = 8.0          # M3 x 8 button head, Mywish kit
 SCREW_HEAD_D, SCREW_HEAD_H = 5.7, 1.65  # ISO 7380 nominal
 CBORE_D, CBORE_DEPTH = 6.2, 2.4
 NUT_AF, NUT_H = 5.5, 2.4       # ISO 4032 M3 nut, nominal
-NUT_FIT = 0.2          # slot clearance across the flats
-NUT_SLOT_H = 2.4       # one 0.2 mm layer less than the 2.6 that printed loose; the bridged roof sags a little
+NUT_FIT = 0.0          # slot clearance across the flats: 0.0 won the nut test (moderate press fit)
+NUT_SLOT_H = 2.6       # 2.4 was too tight to load; 2.6 is snug at NUT_FIT 0.0
 NUT_Z = PLATE_T + 2.6  # underside of the nut: 2.6 mm shelf below it; keeps the slot roof on a 0.2 mm layer line
 BORE_D = 3.4           # screw clearance through the plate and boss
 BORE_TOP = PLATE_T + 8.5
@@ -91,7 +95,6 @@ LAYER = 0.2            # slicer layer height the bridging tricks are built for
 CRADLE_TOP = AXIS_Z + 3.9  # plate U-cradles stop here; the shell caps them
 CAP_GAP = 0.2          # shell underside above the cradle tops
 ENC_CAP_Z = AXIS_Z + 7.2   # shell underside above the encoder bodies (0.5 mm clear)
-BULK_X0 = WHEEL_IN + WHEEL_W + 0.5  # inner face of the bulkhead over each encoder
 FIN_T = 2.4           # LED slot walls (1.6 mm peeled off the bed on the third print)
 RIB_T = 3.0           # front centre rib
 FOOT_W, FOOT_H = 1.5, 1.0  # flange on each side of the thin walls' first 1 mm, for bed grip
@@ -102,8 +105,13 @@ MINUTES = [f"{m:02d}" for m in range(0, 60, 5)] * 2         # 1 click = 5 min
 # ---- derived ---------------------------------------------------------------
 HALF = BASE / 2
 WHEEL_OUT = WHEEL_IN + WHEEL_W
-UPRIGHT = (WHEEL_OUT + 0.5, WHEEL_OUT + 3.5)
+# The encoder is clamped to its upright with its own washer and nut, which sit on the
+# bushing between the upright and the wheel. The gap is the bushing that sticks out past
+# the upright plus 0.5 mm, so the bushing tip stays clear of the wheel whatever the nut.
+NUT_GAP = ENC_BUSH_L - ENC_UPRIGHT_T + 0.5
+UPRIGHT = (WHEEL_OUT + NUT_GAP, WHEEL_OUT + NUT_GAP + ENC_UPRIGHT_T)
 MOUNT_X = UPRIGHT[1]                  # encoder mounting face
+BULK_X0 = UPRIGHT[0]                  # inner face of the shell's cap over each upright
 BORE_END = MOUNT_X - ENC_SHAFT_L - 0.5
 PITCH = 360.0 / N_POS
 
@@ -271,14 +279,19 @@ def make_shell():
     shell += (outer & bx(*xw, 9.5, HALF, PLATE_T, cap + 1)) - tunnel
     for s in (-1, 1):
         # over the encoder upright: low enough to cap the bushing in its U
-        xb = sorted((s * BULK_X0, s * (MOUNT_X - 0.25)))
+        shell += outer & bx(*sorted((s * BULK_X0, s * (MOUNT_X - 0.25))), -HALF, HALF, cap, 100)
+        # the walls below run in to just short of the wheel, so they stay thick; the
+        # encoder nut sits between them, under a higher cap that clears it as far out as
+        # the one over the encoder body
+        xb = sorted((s * (WHEEL_OUT + 0.5), s * (MOUNT_X - 0.25)))
         # feet flare outward only: the wheels pass the inner face as the shell goes on
-        xbf = sorted((s * BULK_X0, s * (MOUNT_X - 0.25 + FOOT_W)))
-        shell += outer & bx(*xb, -HALF, HALF, cap, 100)
-        shell += outer & (bx(*xb, -HALF, -10.5, PLATE_T, cap + 1) + bx(*xbf, -HALF, -10.5, PLATE_T, PLATE_T + FOOT_H))
+        xbf = sorted((s * (WHEEL_OUT + 0.5), s * (MOUNT_X - 0.25 + FOOT_W)))
+        shell += outer & bx(*xb, -HALF, HALF, ENC_CAP_Z, 100)
+        top = ENC_CAP_Z + 1
+        shell += outer & (bx(*xb, -HALF, -10.5, PLATE_T, top) + bx(*xbf, -HALF, -10.5, PLATE_T, PLATE_T + FOOT_H))
         # rear: a doorway at the bottom passes the encoder and switch wires to the board
         door = bx(xb[0] - FOOT_W - 1, xb[1] + FOOT_W + 1, 16.0, 30.0, PLATE_T - 1, 9.0)
-        shell += (outer & (bx(*xb, 10.5, HALF, PLATE_T, cap + 1) + bx(*xbf, 10.5, HALF, PLATE_T, PLATE_T + FOOT_H))) - door
+        shell += (outer & (bx(*xb, 10.5, HALF, PLATE_T, top) + bx(*xbf, 10.5, HALF, PLATE_T, PLATE_T + FOOT_H))) - door
         # over the encoder body, out to the side wall: replaces the tilted deck ceiling
         shell += outer & bx(*sorted((s * (MOUNT_X - 0.25), s * HALF)), -HALF, HALF, ENC_CAP_Z, 100)
 
@@ -404,25 +417,25 @@ def make_plate():
     return plate
 
 
-def d_bore(x0, x1, rib=None):
+def d_bore(x0, x1, rib=None, ribs=True):
     """D-shaped bore along X with crush ribs reaching `rib` mm into the seated shaft
-    (RIB_I by default; 0 for none). The lead-in for the ribs is the cone the bore is
-    entered through (see make_wheel)."""
+    (RIB_I by default; ribs=False for none). The lead-in for the ribs is the cone the
+    bore is entered through (see make_wheel)."""
     rib = RIB_I if rib is None else rib
     r = ENC_SHAFT_D / 2 + FIT
     flat = ENC_SHAFT_FLAT - ENC_SHAFT_D / 2 + FIT
     c = cyl_x(x0, x1, 2 * r)
     keep = bx(x0 - 1, x1 + 1, -r - 1, r + 1, -r - 1, flat)
     bore = c & (Pos(0, 0, AXIS_Z) * Rot(CLOCK_OFFSET_DEG, 0, 0) * keep)
-    if rib > 0:
-        ribs = None
+    if ribs:
+        cut = None
         for a in RIB_ANGLES:
             # with its flat seated on the bore's flat, the shaft sits FIT off-centre
             # towards the flat, so its surface is at this radius in direction a
             surface = ENC_SHAFT_D / 2 + FIT * cos(radians(a))
             one = Rot(a, 0, 0) * bx(x0 - 1, x1 + 1, -RIB_W / 2, RIB_W / 2, surface - rib, r + 0.3)
-            ribs = one if ribs is None else ribs + one
-        bore -= Pos(0, 0, AXIS_Z) * Rot(CLOCK_OFFSET_DEG, 0, 0) * ribs
+            cut = one if cut is None else cut + one
+        bore -= Pos(0, 0, AXIS_Z) * Rot(CLOCK_OFFSET_DEG, 0, 0) * cut
     return bore
 
 
@@ -432,7 +445,7 @@ def _text(label):
     return Text(label, font_size=TEXT_SIZE, font=FONT, font_style=FontStyle.BOLD)
 
 
-def wheel_bore(inner_sign, rib=None):
+def wheel_bore(inner_sign, rib=None, ribs=True):
     """Everything cut for the encoder in a wheel: the bushing pocket from the outer face,
     a 45 degree cone down to the D-flat, and the ribbed D bore."""
     xo = -inner_sign * WHEEL_OUT
@@ -442,7 +455,7 @@ def wheel_bore(inner_sign, rib=None):
     # is the lead-in for the crush ribs
     r0, r1 = (ENC_BUSH_D + 1.5) / 2, ENC_SHAFT_FLAT - ENC_SHAFT_D / 2 + FIT
     cut += Pos(-inner_sign * (pocket_floor - (r0 - r1) / 2), 0, AXIS_Z) * Rot(0, inner_sign * 90, 0) * Cone(r0, r1, r0 - r1)
-    return cut + d_bore(*sorted((-inner_sign * BORE_END, -inner_sign * (pocket_floor + 0.5))), rib)
+    return cut + d_bore(*sorted((-inner_sign * BORE_END, -inner_sign * (pocket_floor + 0.5))), rib, ribs)
 
 
 def make_wheel(inner_sign, labels):
@@ -494,6 +507,7 @@ def make_dummies():
         xb = sorted((s * MOUNT_X, s * (MOUNT_X - ENC_BUSH_L)))
         xp = sorted((s * (MOUNT_X + ENC_BODY_L), s * (MOUNT_X + ENC_BODY_L + ENC_PIN_L)))
         e = bx(*xs, -6.25, 6.25, AXIS_Z - h, AXIS_Z + h) + cyl_x(*xb, ENC_BUSH_D)
+        e += cyl_x(*sorted((s * (WHEEL_OUT + 0.25), s * UPRIGHT[0])), ENC_NUT_ENVELOPE)  # washer + nut
         e += bx(*sorted((s * (MOUNT_X + 2), s * (MOUNT_X + 3.5))), -w, w, AXIS_Z - 1, AXIS_Z + 1)  # side tabs
         for y in (-2.5, 0, 2.5):
             e += bx(*xp, y - 0.4, y + 0.4, AXIS_Z - 7.9, AXIS_Z - 7.1)
