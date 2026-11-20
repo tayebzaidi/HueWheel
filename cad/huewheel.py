@@ -56,8 +56,8 @@ FIT = 0.15             # radial clearance on the D bore
 # for a tight fit that still pulls off. One sits opposite the flat and pushes the shaft's
 # flat onto the bore's, so the wheel has no turning play. RIB_I is how far each rib
 # reaches into the shaft once seated (negative: the rib stops short of it, and the
-# shaft only meets it because printed holes come out a little small). 0.1, 0.2 and 0.3
-# were all too tight on the first rib test; pick it with cad/test/rib_test.stl.
+# shaft only meets it because printed holes come out a little small). Picked with
+# cad/test/rib_test.stl: 0.1-0.3 were all too tight, -0.05 fit best, -0.10 a bit loose.
 RIB_I = -0.05
 RIB_W = 1.0
 RIB_ANGLES = (180.0, 105.0, -105.0)  # degrees from the flat; the round wall starts at +/-60

@@ -8,7 +8,7 @@ still touch. The size is engraved on the front. It opens through the top so you 
 the shaft tip.
 
 Second round: on the first test 0.1, 0.2 and 0.3 were all too tight, so this one steps
-down from 0.05 in 0.05 mm steps.
+down from 0.05 in 0.05 mm steps. Done: -0.05 fit best (-0.10 a bit loose) and is RIB_I.
 
 Print it as exported (bed face down, like the wheels' outer face), no supports, at the
 wheels' layer height. Push an encoder shaft into each hub from the bed side, flat

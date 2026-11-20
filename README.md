@@ -67,19 +67,20 @@ you need them. These are estimates, so check them at checkout.
 
 ### 2. Print the parts
 
-**Print the rib test piece first:** [`cad/test/rib_test.stl`](cad/test/rib_test.stl), at
-0.12 mm like the wheels, as exported. Each wheel grips its encoder shaft with three small crush
-ribs in the D-shaped bore, which the shaft squashes as the wheel goes on. The test piece has
-five hubs, each a full wheel thick and cut exactly like a wheel's bore, with ribs reaching
--0.15, -0.10, -0.05, 0.00 and 0.05 mm into the shaft. A negative size means the rib stops short
-of the shaft in the model, but printed holes come out slightly small, so it can still grip.
-(0.1, 0.2 and 0.3 were all too tight in the first round.) Push an encoder shaft into each hub
-from the bottom, flat first, then pull it out. Choose the tightest one that goes fully on by
-hand without cracking and has no wobble or turning play. Set `RIB_I` in `cad/huewheel.py` to
-that size and re-export. The test piece is not part of the build.
+**Print the spanner test first:** [`cad/test/spanner_test.stl`](cad/test/spanner_test.stl),
+at 0.2 mm layers, flat as exported. Each encoder is clamped to the base plate by its own nut,
+which sits in a 3.5 mm gap beside the wheel where fingers can't reach, so you tighten it with a
+thin printed spanner. The test has four 1.6 mm thick spanners for nuts 9.0, 9.5, 10.0 and
+11.0 mm across the flats, engraved on the handles. Pick the one that slides onto the encoder's
+nut with no rock, and keep it for assembly.
 
-Two earlier test pieces are done, and their results are already in the model. Neither is part
+Three earlier test pieces are done, and their results are already in the model. None is part
 of the build:
+
+- [`cad/test/rib_test.stl`](cad/test/rib_test.stl): each wheel grips its encoder shaft with
+  three small crush ribs in the D-shaped bore. Hubs with ribs from -0.15 to 0.3 mm were tried;
+  -0.05 fit best, so `RIB_I` is -0.05. A negative size means the rib stops short of the shaft in
+  the model, but printed holes come out slightly small, so it still grips.
 
 - [`cad/test/nut_test.stl`](cad/test/nut_test.stl): the shell's captive-nut boss with slots
   0.0, 0.1 or 0.2 mm wider than the nut. 0.0 won, with a moderate press fit, so `NUT_FIT` is
@@ -259,9 +260,10 @@ With the log still open, and everything still loose on the bench:
    there's no room to slide it onto the shaft.
 5. Lower each wheel and encoder into the cradles: the upright goes between the washer and the
    encoder, the bushing into its U-slot, the stub boss into the centre cradle and the encoder
-   body into its socket. Snug the nut against the upright with a fingertip or a small flat
-   screwdriver through the 3.5 mm gap beside the wheel, so the encoder doesn't rattle. To take
-   it apart, loosen the nut, lift the wheel and encoder out together, and pull the wheel off.
+   body into its socket. Drop the printed spanner into the 3.5 mm gap between the wheel and the
+   upright, jaws down around the nut, and tighten until the encoder is firm. If the handle
+   runs into the plate, lift it off and refit it further back for the next stroke. To take it
+   apart, loosen the nut, lift the wheel and encoder out together, and pull the wheel off.
 6. Slide an M3 nut into the slot in each corner block from the inside, with the flats against
    the slot walls. Add a small dab of hot glue at the slot mouth so it can't fall out, keeping
    glue out of the screw hole.
@@ -330,6 +332,7 @@ python cad/test/rib_test.py # crush-rib test piece: cad/test/rib_test.stl
 python cad/printcheck.py cad/test/rib_test.stl
 python cad/test/nut_test.py   # nut slot test: cad/test/nut_test.stl
 python cad/test/clamp_test.py # encoder clamp test: cad/test/clamp_test.stl
+python cad/test/spanner_test.py # encoder-nut spanners: cad/test/spanner_test.stl
 xvfb-run -a python cad/render.py   # docs/renders
 python cad/view.py          # interactive 3D viewer of the assembly
 ```
